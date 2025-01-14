@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.PS4Controller;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -15,8 +16,24 @@ public class RobotContainer {
   // The robot's subsystems
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
 
-  // The driver's controller
-  private final XboxController driverController = new XboxController(0);
+  // The driver's controllers
+  private final XboxController xboxController = new XboxController(0);
+  private final PS4Controller ps4Controller = new PS4Controller(1);
+
+  // Set which controller to use (true for Xbox, false for PS4)
+  private final boolean useXboxController = false;
+
+  private double getForwardInput() {
+    return useXboxController ? -xboxController.getLeftY() : -ps4Controller.getLeftY();
+  }
+
+  private double getStrafeInput() {
+    return useXboxController ? -xboxController.getLeftX() : -ps4Controller.getLeftX();
+  }
+
+  private double getRotationInput() {
+    return useXboxController ? -xboxController.getRightX() : -ps4Controller.getRightX();
+  }
 
   public RobotContainer() {
     configureBindings();
@@ -25,27 +42,39 @@ public class RobotContainer {
     driveSubsystem.setDefaultCommand(
         new DefaultDriveCommand(
             driveSubsystem,
-            () -> -driverController.getLeftY() * 0.5,  // Forward/backward
-            () -> -driverController.getLeftX() * 0.5,  // Left/right
-            () -> -driverController.getRightX() * 0.5  // Rotation
+            () -> getForwardInput() * 0.5,  // Forward/backward
+            () -> getStrafeInput() * 0.5,   // Left/right
+            () -> getRotationInput() * 0.5  // Rotation
         )
     );
   }
 
   private void configureBindings() {
-    // Add button bindings here
-    // Stop the robot when the B button is pressed
-    new JoystickButton(driverController, XboxController.Button.kB.value)
+    // Xbox Controller Bindings
+    new JoystickButton(xboxController, XboxController.Button.kB.value)
         .onTrue(Commands.runOnce(() -> driveSubsystem.stop()));
     
-    // Half speed mode while holding right bumper
-    new JoystickButton(driverController, XboxController.Button.kRightBumper.value)
+    new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)
         .whileTrue(
             new DefaultDriveCommand(
                 driveSubsystem,
-                () -> -driverController.getLeftY() * 0.25,  // Half speed forward/backward
-                () -> -driverController.getLeftX() * 0.25,  // Half speed left/right
-                () -> -driverController.getRightX() * 0.25   // Half speed rotation
+                () -> getForwardInput() * 0.25,
+                () -> getStrafeInput() * 0.25,
+                () -> getRotationInput() * 0.25
+            )
+        );
+
+    // PS4 Controller Bindings
+    new JoystickButton(ps4Controller, PS4Controller.Button.kCircle.value)
+        .onTrue(Commands.runOnce(() -> driveSubsystem.stop()));
+    
+    new JoystickButton(ps4Controller, PS4Controller.Button.kR1.value)
+        .whileTrue(
+            new DefaultDriveCommand(
+                driveSubsystem,
+                () -> getForwardInput() * 0.25,
+                () -> getStrafeInput() * 0.25,
+                () -> getRotationInput() * 0.25
             )
         );
   }

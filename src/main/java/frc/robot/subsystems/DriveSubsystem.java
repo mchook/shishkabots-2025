@@ -78,13 +78,21 @@ public class DriveSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         // This method will be called once per scheduler run
-        SmartDashboard.putNumber("Front Left Drive Motor", frontLeftDriveMotor.get());
-        SmartDashboard.putNumber("Front Left Steer Motor", frontLeftSteerMotor.get());
-        SmartDashboard.putNumber("Front Right Drive Motor", frontRightDriveMotor.get());
-        SmartDashboard.putNumber("Front Right Steer Motor", frontRightSteerMotor.get());
-        SmartDashboard.putNumber("Back Left Drive Motor", backLeftDriveMotor.get());
-        SmartDashboard.putNumber("Back Left Steer Motor", backLeftSteerMotor.get());
-        SmartDashboard.putNumber("Back Right Drive Motor", backRightDriveMotor.get());
-        SmartDashboard.putNumber("Back Right Steer Motor", backRightSteerMotor.get());
+        
+        // Front Left Module
+        SmartDashboard.putNumber("Swerve/Front Left/Drive Speed", frontLeftDriveMotor.get());
+        SmartDashboard.putNumber("Swerve/Front Left/Steer Angle", frontLeftSteerMotor.get());
+        
+        // Front Right Module
+        SmartDashboard.putNumber("Swerve/Front Right/Drive Speed", frontRightDriveMotor.get());
+        SmartDashboard.putNumber("Swerve/Front Right/Steer Angle", frontRightSteerMotor.get());
+        
+        // Back Left Module
+        SmartDashboard.putNumber("Swerve/Back Left/Drive Speed", backLeftDriveMotor.get());
+        SmartDashboard.putNumber("Swerve/Back Left/Steer Angle", backLeftSteerMotor.get());
+        
+        // Back Right Module
+        SmartDashboard.putNumber("Swerve/Back Right/Drive Speed", backRightDriveMotor.get());
+        SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", backRightSteerMotor.get());
     }
 }
