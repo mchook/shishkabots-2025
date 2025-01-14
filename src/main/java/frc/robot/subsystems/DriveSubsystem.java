@@ -1,90 +1,90 @@
 package frc.robot.subsystems;
 
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class DriveSubsystem extends SubsystemBase {
-    // Motor controllers for the left side
-    private final PWMSparkMax leftFrontMotor = new PWMSparkMax(0);
-    private final PWMSparkMax leftRearMotor = new PWMSparkMax(1);
+    // Locations for the swerve drive modules relative to the robot center
+    private final Translation2d frontLeftLocation = new Translation2d(0.381, 0.381);
+    private final Translation2d frontRightLocation = new Translation2d(0.381, -0.381);
+    private final Translation2d backLeftLocation = new Translation2d(-0.381, 0.381);
+    private final Translation2d backRightLocation = new Translation2d(-0.381, -0.381);
 
-    // Motor controllers for the right side
-    private final PWMSparkMax rightFrontMotor = new PWMSparkMax(2);
-    private final PWMSparkMax rightRearMotor = new PWMSparkMax(3);
+    // Motor controllers for the swerve drive modules
+    private final PWMSparkMax frontLeftDriveMotor = new PWMSparkMax(0);
+    private final PWMSparkMax frontLeftSteerMotor = new PWMSparkMax(1);
+    private final PWMSparkMax frontRightDriveMotor = new PWMSparkMax(2);
+    private final PWMSparkMax frontRightSteerMotor = new PWMSparkMax(3);
+    private final PWMSparkMax backLeftDriveMotor = new PWMSparkMax(4);
+    private final PWMSparkMax backLeftSteerMotor = new PWMSparkMax(5);
+    private final PWMSparkMax backRightDriveMotor = new PWMSparkMax(6);
+    private final PWMSparkMax backRightSteerMotor = new PWMSparkMax(7);
 
-    // Differential drive
-    private final DifferentialDrive drive;
+    private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
+        frontLeftLocation, frontRightLocation, backLeftLocation, backRightLocation);
 
     public DriveSubsystem() {
         // Invert the right side motors
-        rightFrontMotor.setInverted(true);
-        rightRearMotor.setInverted(true);
-
-        // Create the differential drive controller
-        drive = new DifferentialDrive(leftFrontMotor, rightFrontMotor);
+        frontRightDriveMotor.setInverted(true);
+        frontRightSteerMotor.setInverted(true);
+        backRightDriveMotor.setInverted(true);
+        backRightSteerMotor.setInverted(true);
     }
 
     /**
-     * Drive the robot using arcade controls.
+     * Method to drive the robot using joystick info.
      *
-     * @param speed the commanded forward movement
-     * @param rotation the commanded rotation
+     * @param xSpeed Speed of the robot in the x direction (forward).
+     * @param ySpeed Speed of the robot in the y direction (sideways).
+     * @param rot Angular rate of the robot.
      */
-    public void arcadeDrive(double speed, double rotation) {
-        drive.arcadeDrive(speed, rotation);
-        // Set rear motors to match front motors
-        leftRearMotor.set(leftFrontMotor.get());
-        rightRearMotor.set(rightFrontMotor.get());
+    public void drive(double xSpeed, double ySpeed, double rot) {
+        // Convert to meters per second
+        xSpeed = xSpeed * 4.0; // Maximum speed of 4 meters per second
+        ySpeed = ySpeed * 4.0;
+        rot = rot * 4.0;
+
+        var swerveModuleStates = kinematics.toSwerveModuleStates(
+            new ChassisSpeeds(xSpeed, ySpeed, rot));
+
+        SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, 4.0);
+
+        frontLeftDriveMotor.set(swerveModuleStates[0].speedMetersPerSecond);
+        frontLeftSteerMotor.set(swerveModuleStates[0].angle.getRadians());
+        frontRightDriveMotor.set(swerveModuleStates[1].speedMetersPerSecond);
+        frontRightSteerMotor.set(swerveModuleStates[1].angle.getRadians());
+        backLeftDriveMotor.set(swerveModuleStates[2].speedMetersPerSecond);
+        backLeftSteerMotor.set(swerveModuleStates[2].angle.getRadians());
+        backRightDriveMotor.set(swerveModuleStates[3].speedMetersPerSecond);
+        backRightSteerMotor.set(swerveModuleStates[3].angle.getRadians());
     }
 
-    /**
-     * Drive the robot using tank controls.
-     *
-     * @param leftSpeed the commanded left speed
-     * @param rightSpeed the commanded right speed
-     */
-    public void tankDrive(double leftSpeed, double rightSpeed) {
-        drive.tankDrive(leftSpeed, rightSpeed);
-        // Set rear motors to match front motors
-        leftRearMotor.set(leftFrontMotor.get());
-        rightRearMotor.set(rightFrontMotor.get());
+    public void stop() {
+        frontLeftDriveMotor.stopMotor();
+        frontLeftSteerMotor.stopMotor();
+        frontRightDriveMotor.stopMotor();
+        frontRightSteerMotor.stopMotor();
+        backLeftDriveMotor.stopMotor();
+        backLeftSteerMotor.stopMotor();
+        backRightDriveMotor.stopMotor();
+        backRightSteerMotor.stopMotor();
     }
 
     @Override
     public void periodic() {
         // This method will be called once per scheduler run
-        SmartDashboard.putNumber("Left Front Motor", leftFrontMotor.get());
-        SmartDashboard.putNumber("Left Rear Motor", leftRearMotor.get());
-        SmartDashboard.putNumber("Right Front Motor", rightFrontMotor.get());
-        SmartDashboard.putNumber("Right Rear Motor", rightRearMotor.get());
-    }
-
-    /**
-     * Stop the drive motors.
-     */
-    public void stop() {
-        drive.stopMotor();
-    }
-
-    /**
-     * Drive the robot using arcade controls.
-     * 
-     * @param speed The robot's speed along the X axis [-1.0..1.0]. Forward is positive.
-     * @param rotation The robot's rotation rate around the Z axis [-1.0..1.0]. Clockwise is positive.
-     */
-    public void set(double speed, double rotation) {
-        drive.arcadeDrive(speed, rotation);
-    }
-
-    /**
-     * Drive the robot using tank controls.
-     * 
-     * @param left The speed of the left side of the robot [-1.0..1.0]
-     * @param right The speed of the right side of the robot [-1.0..1.0]
-     */
-    public void tank(double left, double right) {
-        drive.tankDrive(left, right);
+        SmartDashboard.putNumber("Front Left Drive Motor", frontLeftDriveMotor.get());
+        SmartDashboard.putNumber("Front Left Steer Motor", frontLeftSteerMotor.get());
+        SmartDashboard.putNumber("Front Right Drive Motor", frontRightDriveMotor.get());
+        SmartDashboard.putNumber("Front Right Steer Motor", frontRightSteerMotor.get());
+        SmartDashboard.putNumber("Back Left Drive Motor", backLeftDriveMotor.get());
+        SmartDashboard.putNumber("Back Left Steer Motor", backLeftSteerMotor.get());
+        SmartDashboard.putNumber("Back Right Drive Motor", backRightDriveMotor.get());
+        SmartDashboard.putNumber("Back Right Steer Motor", backRightSteerMotor.get());
     }
 }

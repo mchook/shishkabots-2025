@@ -25,8 +25,9 @@ public class RobotContainer {
     driveSubsystem.setDefaultCommand(
         new DefaultDriveCommand(
             driveSubsystem,
-            () -> -driverController.getLeftY(),  // Forward/backward (inverted because forward is negative on the controller)
-            () -> -driverController.getRightX()  // Rotation (inverted because right is positive on the controller)
+            () -> -driverController.getLeftY() * 0.5,  // Forward/backward
+            () -> -driverController.getLeftX() * 0.5,  // Left/right
+            () -> -driverController.getRightX() * 0.5  // Rotation
         )
     );
   }
@@ -42,8 +43,9 @@ public class RobotContainer {
         .whileTrue(
             new DefaultDriveCommand(
                 driveSubsystem,
-                () -> -driverController.getLeftY() * 0.5,  // Half speed forward/backward
-                () -> -driverController.getRightX() * 0.5   // Half speed rotation
+                () -> -driverController.getLeftY() * 0.25,  // Half speed forward/backward
+                () -> -driverController.getLeftX() * 0.25,  // Half speed left/right
+                () -> -driverController.getRightX() * 0.25   // Half speed rotation
             )
         );
   }

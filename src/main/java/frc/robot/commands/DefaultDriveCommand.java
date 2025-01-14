@@ -6,26 +6,33 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.DriveSubsystem;
 
 /**
- * Default command for the drive subsystem that implements arcade drive control.
+ * Default command for the drive subsystem that implements swerve drive control.
  * This command will run by default whenever the drive subsystem is not being used by another command.
- * It takes continuous input from two double suppliers (typically joystick axes) to control the robot's
- * forward/backward movement and rotation.
+ * It takes continuous input from three double suppliers (typically joystick axes) to control the robot's
+ * forward/backward movement, left/right movement, and rotation.
  */
 public class DefaultDriveCommand extends Command {
     private final DriveSubsystem driveSubsystem;
-    private final DoubleSupplier speedSupplier;
+    private final DoubleSupplier xSpeedSupplier;
+    private final DoubleSupplier ySpeedSupplier;
     private final DoubleSupplier rotationSupplier;
 
     /**
      * Creates a new DefaultDriveCommand.
      *
      * @param subsystem The drive subsystem this command will run on
-     * @param speed The forward/backward speed to drive at
-     * @param rotation The rotation speed to turn at
+     * @param xSpeed The forward/backward speed supplier
+     * @param ySpeed The left/right speed supplier
+     * @param rotation The rotation speed supplier
      */
-    public DefaultDriveCommand(DriveSubsystem subsystem, DoubleSupplier speed, DoubleSupplier rotation) {
+    public DefaultDriveCommand(
+            DriveSubsystem subsystem,
+            DoubleSupplier xSpeed,
+            DoubleSupplier ySpeed,
+            DoubleSupplier rotation) {
         driveSubsystem = subsystem;
-        speedSupplier = speed;
+        xSpeedSupplier = xSpeed;
+        ySpeedSupplier = ySpeed;
         rotationSupplier = rotation;
         addRequirements(subsystem); // ensures command has exclusive use of the drive subsystem. 
     }
@@ -37,7 +44,10 @@ public class DefaultDriveCommand extends Command {
 
     @Override
     public void execute() {
-        driveSubsystem.arcadeDrive(speedSupplier.getAsDouble(), rotationSupplier.getAsDouble());
+        driveSubsystem.drive(
+            xSpeedSupplier.getAsDouble(),
+            ySpeedSupplier.getAsDouble(),
+            rotationSupplier.getAsDouble());
     }
 
     @Override
