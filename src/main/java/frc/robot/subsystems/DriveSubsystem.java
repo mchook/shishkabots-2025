@@ -82,17 +82,27 @@ public class DriveSubsystem extends SubsystemBase {
         // Front Left Module
         SmartDashboard.putNumber("Swerve/Front Left/Drive Speed", frontLeftDriveMotor.get());
         SmartDashboard.putNumber("Swerve/Front Left/Steer Angle", frontLeftSteerMotor.get());
+        SmartDashboard.putBoolean("Swerve/Front Left/Drive Connected", frontLeftDriveMotor != null);
         
         // Front Right Module
         SmartDashboard.putNumber("Swerve/Front Right/Drive Speed", frontRightDriveMotor.get());
         SmartDashboard.putNumber("Swerve/Front Right/Steer Angle", frontRightSteerMotor.get());
+        SmartDashboard.putBoolean("Swerve/Front Right/Drive Connected", frontRightDriveMotor != null);
         
         // Back Left Module
         SmartDashboard.putNumber("Swerve/Back Left/Drive Speed", backLeftDriveMotor.get());
         SmartDashboard.putNumber("Swerve/Back Left/Steer Angle", backLeftSteerMotor.get());
+        SmartDashboard.putBoolean("Swerve/Back Left/Drive Connected", backLeftDriveMotor != null);
         
         // Back Right Module
         SmartDashboard.putNumber("Swerve/Back Right/Drive Speed", backRightDriveMotor.get());
         SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", backRightSteerMotor.get());
+        SmartDashboard.putBoolean("Swerve/Back Right/Drive Connected", backRightDriveMotor != null);
+
+        // Print PWM channels for verification
+        SmartDashboard.putNumber("Swerve/FL Drive Channel", frontLeftDriveMotor.getChannel());
+        SmartDashboard.putNumber("Swerve/FR Drive Channel", frontRightDriveMotor.getChannel());
+        SmartDashboard.putNumber("Swerve/BL Drive Channel", backLeftDriveMotor.getChannel());
+        SmartDashboard.putNumber("Swerve/BR Drive Channel", backRightDriveMotor.getChannel());
     }
 }
