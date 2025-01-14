@@ -1,11 +1,12 @@
 package frc.robot.subsystems;
 
-import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -16,14 +17,14 @@ public class DriveSubsystem extends SubsystemBase {
     private final Translation2d backRightLocation = new Translation2d(-0.381, -0.381);
 
     // Motor controllers for the swerve drive modules
-    private final PWMSparkMax frontLeftDriveMotor = new PWMSparkMax(0);
-    private final PWMSparkMax frontLeftSteerMotor = new PWMSparkMax(1);
-    private final PWMSparkMax frontRightDriveMotor = new PWMSparkMax(2);
-    private final PWMSparkMax frontRightSteerMotor = new PWMSparkMax(3);
-    private final PWMSparkMax backLeftDriveMotor = new PWMSparkMax(4);
-    private final PWMSparkMax backLeftSteerMotor = new PWMSparkMax(5);
-    private final PWMSparkMax backRightDriveMotor = new PWMSparkMax(6);
-    private final PWMSparkMax backRightSteerMotor = new PWMSparkMax(7);
+    private final CANSparkMax frontLeftDriveMotor = new CANSparkMax(1, MotorType.kBrushless);
+    private final CANSparkMax frontLeftSteerMotor = new CANSparkMax(2, MotorType.kBrushless);
+    private final CANSparkMax frontRightDriveMotor = new CANSparkMax(3, MotorType.kBrushless);
+    private final CANSparkMax frontRightSteerMotor = new CANSparkMax(4, MotorType.kBrushless);
+    private final CANSparkMax backLeftDriveMotor = new CANSparkMax(5, MotorType.kBrushless);
+    private final CANSparkMax backLeftSteerMotor = new CANSparkMax(6, MotorType.kBrushless);
+    private final CANSparkMax backRightDriveMotor = new CANSparkMax(7, MotorType.kBrushless);
+    private final CANSparkMax backRightSteerMotor = new CANSparkMax(8, MotorType.kBrushless);
 
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
         frontLeftLocation, frontRightLocation, backLeftLocation, backRightLocation);
@@ -99,10 +100,10 @@ public class DriveSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", backRightSteerMotor.get());
         SmartDashboard.putBoolean("Swerve/Back Right/Drive Connected", backRightDriveMotor != null);
 
-        // Print PWM channels for verification
-        SmartDashboard.putNumber("Swerve/FL Drive Channel", frontLeftDriveMotor.getChannel());
-        SmartDashboard.putNumber("Swerve/FR Drive Channel", frontRightDriveMotor.getChannel());
-        SmartDashboard.putNumber("Swerve/BL Drive Channel", backLeftDriveMotor.getChannel());
-        SmartDashboard.putNumber("Swerve/BR Drive Channel", backRightDriveMotor.getChannel());
+        // Print CAN IDs for verification
+        SmartDashboard.putNumber("Swerve/FL Drive ID", frontLeftDriveMotor.getDeviceId());
+        SmartDashboard.putNumber("Swerve/FR Drive ID", frontRightDriveMotor.getDeviceId());
+        SmartDashboard.putNumber("Swerve/BL Drive ID", backLeftDriveMotor.getDeviceId());
+        SmartDashboard.putNumber("Swerve/BR Drive ID", backRightDriveMotor.getDeviceId());
     }
 }
