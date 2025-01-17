@@ -17,22 +17,34 @@ public class RobotContainer {
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
 
   // The driver's controllers
-  private final XboxController xboxController = new XboxController(0);
-  private final PS4Controller ps4Controller = new PS4Controller(1);
+  private final XboxController xboxController = new XboxController(1);
+  private final PS4Controller ps4Controller = new PS4Controller(0);
 
   // Set which controller to use (true for Xbox, false for PS4)
   private final boolean useXboxController = false;
 
+  private static final double DEADBAND = 0.1;
+
+  private double applyDeadband(double value) {
+    if (Math.abs(value) < DEADBAND) {
+      return 0.0;
+    }
+    return value;
+  }
+
   private double getForwardInput() {
-    return useXboxController ? -xboxController.getLeftY() : -ps4Controller.getLeftY();
+    double raw = useXboxController ? -xboxController.getLeftY() : -ps4Controller.getLeftY();
+    return applyDeadband(raw);
   }
 
   private double getStrafeInput() {
-    return useXboxController ? -xboxController.getLeftX() : -ps4Controller.getLeftX();
+    double raw = useXboxController ? -xboxController.getLeftX() : -ps4Controller.getLeftX();
+    return applyDeadband(raw);
   }
 
   private double getRotationInput() {
-    return useXboxController ? -xboxController.getRightX() : -ps4Controller.getRightX();
+    double raw = useXboxController ? -xboxController.getRightX() : -ps4Controller.getRightX();
+    return applyDeadband(raw);
   }
 
   public RobotContainer() {
