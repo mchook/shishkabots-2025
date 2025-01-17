@@ -47,6 +47,17 @@ public class DriveSubsystem extends SubsystemBase {
      * @param rot Angular rate of the robot.
      */
     public void drive(double xSpeed, double ySpeed, double rot) {
+        // Debug input values
+        SmartDashboard.putNumber("Drive/Input/X", xSpeed);
+        SmartDashboard.putNumber("Drive/Input/Y", ySpeed);
+        SmartDashboard.putNumber("Drive/Input/Rot", rot);
+
+        // If all inputs are zero, stop the motors
+        if (Math.abs(xSpeed) < 1E-6 && Math.abs(ySpeed) < 1E-6 && Math.abs(rot) < 1E-6) {
+            stop();
+            return;
+        }
+
         // Convert to meters per second
         xSpeed = xSpeed * 4.0; // Maximum speed of 4 meters per second
         ySpeed = ySpeed * 4.0;
@@ -57,14 +68,18 @@ public class DriveSubsystem extends SubsystemBase {
 
         SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, 4.0);
 
-        frontLeftDriveMotor.set(swerveModuleStates[0].speedMetersPerSecond);
-        frontLeftSteerMotor.set(swerveModuleStates[0].angle.getRadians());
-        frontRightDriveMotor.set(swerveModuleStates[1].speedMetersPerSecond);
-        frontRightSteerMotor.set(swerveModuleStates[1].angle.getRadians());
-        backLeftDriveMotor.set(swerveModuleStates[2].speedMetersPerSecond);
-        backLeftSteerMotor.set(swerveModuleStates[2].angle.getRadians());
-        backRightDriveMotor.set(swerveModuleStates[3].speedMetersPerSecond);
-        backRightSteerMotor.set(swerveModuleStates[3].angle.getRadians());
+        // Debug output values
+        SmartDashboard.putNumber("Drive/FL/Speed", swerveModuleStates[0].speedMetersPerSecond);
+        SmartDashboard.putNumber("Drive/FL/Angle", swerveModuleStates[0].angle.getDegrees());
+
+        frontLeftDriveMotor.set(swerveModuleStates[0].speedMetersPerSecond / 4.0);  // Normalize back to -1 to 1
+        frontLeftSteerMotor.set(swerveModuleStates[0].angle.getRadians() / (2 * Math.PI));  // Normalize to -1 to 1
+        frontRightDriveMotor.set(swerveModuleStates[1].speedMetersPerSecond / 4.0);
+        frontRightSteerMotor.set(swerveModuleStates[1].angle.getRadians() / (2 * Math.PI));
+        backLeftDriveMotor.set(swerveModuleStates[2].speedMetersPerSecond / 4.0);
+        backLeftSteerMotor.set(swerveModuleStates[2].angle.getRadians() / (2 * Math.PI));
+        backRightDriveMotor.set(swerveModuleStates[3].speedMetersPerSecond / 4.0);
+        backRightSteerMotor.set(swerveModuleStates[3].angle.getRadians() / (2 * Math.PI));
     }
 
     public void stop() {
