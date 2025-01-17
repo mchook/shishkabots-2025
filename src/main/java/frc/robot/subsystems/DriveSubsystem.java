@@ -17,17 +17,19 @@ public class DriveSubsystem extends SubsystemBase {
     private final Translation2d backRightLocation = new Translation2d(-0.381, -0.381);
 
     // Motor controllers for the swerve drive modules
-    private final CANSparkMax frontLeftDriveMotor = new CANSparkMax(1, MotorType.kBrushless);
-    private final CANSparkMax frontLeftSteerMotor = new CANSparkMax(2, MotorType.kBrushless);
-    private final CANSparkMax frontRightDriveMotor = new CANSparkMax(3, MotorType.kBrushless);
-    private final CANSparkMax frontRightSteerMotor = new CANSparkMax(4, MotorType.kBrushless);
-    private final CANSparkMax backLeftDriveMotor = new CANSparkMax(5, MotorType.kBrushless);
-    private final CANSparkMax backLeftSteerMotor = new CANSparkMax(6, MotorType.kBrushless);
-    private final CANSparkMax backRightDriveMotor = new CANSparkMax(7, MotorType.kBrushless);
-    private final CANSparkMax backRightSteerMotor = new CANSparkMax(8, MotorType.kBrushless);
+    private final CANSparkMax frontLeftDriveMotor = new CANSparkMax(4, MotorType.kBrushless);
+    private final CANSparkMax frontLeftSteerMotor = new CANSparkMax(3, MotorType.kBrushless);
+    private final CANSparkMax frontRightDriveMotor = new CANSparkMax(6, MotorType.kBrushless);
+    private final CANSparkMax frontRightSteerMotor = new CANSparkMax(5, MotorType.kBrushless);
+    private final CANSparkMax backLeftDriveMotor = new CANSparkMax(2, MotorType.kBrushless);
+    private final CANSparkMax backLeftSteerMotor = new CANSparkMax(1, MotorType.kBrushless);
+    private final CANSparkMax backRightDriveMotor = new CANSparkMax(8, MotorType.kBrushless);
+    private final CANSparkMax backRightSteerMotor = new CANSparkMax(7, MotorType.kBrushless);
 
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
         frontLeftLocation, frontRightLocation, backLeftLocation, backRightLocation);
+
+    private int updateCounter = 0;
 
     public DriveSubsystem() {
         // Invert the right side motors
@@ -78,32 +80,29 @@ public class DriveSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        // This method will be called once per scheduler run
-        
-        // Front Left Module
-        SmartDashboard.putNumber("Swerve/Front Left/Drive Speed", frontLeftDriveMotor.get());
-        SmartDashboard.putNumber("Swerve/Front Left/Steer Angle", frontLeftSteerMotor.get());
-        SmartDashboard.putBoolean("Swerve/Front Left/Drive Connected", frontLeftDriveMotor != null);
-        
-        // Front Right Module
-        SmartDashboard.putNumber("Swerve/Front Right/Drive Speed", frontRightDriveMotor.get());
-        SmartDashboard.putNumber("Swerve/Front Right/Steer Angle", frontRightSteerMotor.get());
-        SmartDashboard.putBoolean("Swerve/Front Right/Drive Connected", frontRightDriveMotor != null);
-        
-        // Back Left Module
-        SmartDashboard.putNumber("Swerve/Back Left/Drive Speed", backLeftDriveMotor.get());
-        SmartDashboard.putNumber("Swerve/Back Left/Steer Angle", backLeftSteerMotor.get());
-        SmartDashboard.putBoolean("Swerve/Back Left/Drive Connected", backLeftDriveMotor != null);
-        
-        // Back Right Module
-        SmartDashboard.putNumber("Swerve/Back Right/Drive Speed", backRightDriveMotor.get());
-        SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", backRightSteerMotor.get());
-        SmartDashboard.putBoolean("Swerve/Back Right/Drive Connected", backRightDriveMotor != null);
-
-        // Print CAN IDs for verification
-        SmartDashboard.putNumber("Swerve/FL Drive ID", frontLeftDriveMotor.getDeviceId());
-        SmartDashboard.putNumber("Swerve/FR Drive ID", frontRightDriveMotor.getDeviceId());
-        SmartDashboard.putNumber("Swerve/BL Drive ID", backLeftDriveMotor.getDeviceId());
-        SmartDashboard.putNumber("Swerve/BR Drive ID", backRightDriveMotor.getDeviceId());
+        // Only update SmartDashboard every 10 cycles to reduce NT traffic
+        updateCounter++;
+        if (updateCounter >= 10) {
+            try {
+                // Front Left Module
+                SmartDashboard.putNumber("Swerve/Front Left/Drive Speed", frontLeftDriveMotor.get());
+                SmartDashboard.putNumber("Swerve/Front Left/Steer Angle", frontLeftSteerMotor.get());
+                
+                // Front Right Module
+                SmartDashboard.putNumber("Swerve/Front Right/Drive Speed", frontRightDriveMotor.get());
+                SmartDashboard.putNumber("Swerve/Front Right/Steer Angle", frontRightSteerMotor.get());
+                
+                // Back Left Module
+                SmartDashboard.putNumber("Swerve/Back Left/Drive Speed", backLeftDriveMotor.get());
+                SmartDashboard.putNumber("Swerve/Back Left/Steer Angle", backLeftSteerMotor.get());
+                
+                // Back Right Module
+                SmartDashboard.putNumber("Swerve/Back Right/Drive Speed", backRightDriveMotor.get());
+                SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", backRightSteerMotor.get());
+            } catch (Exception e) {
+                System.err.println("Error updating SmartDashboard: " + e.getMessage());
+            }
+            updateCounter = 0;
+        }
     }
 }
