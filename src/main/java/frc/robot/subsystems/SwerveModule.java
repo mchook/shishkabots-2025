@@ -1,17 +1,15 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
-import com.revrobotics.SparkMaxPIDController;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.controller.PIDController;
 
 public class SwerveModule {
     private final CANSparkMax driveMotor;
     private final CANSparkMax turningMotor;
-
+    
     private final RelativeEncoder driveEncoder;
     private final RelativeEncoder turningEncoder;
 
@@ -25,12 +23,11 @@ public class SwerveModule {
             int turningMotorChannel,
             boolean driveEncoderReversed,
             boolean turningEncoderReversed) {
-        
         this.driveEncoderReversed = driveEncoderReversed;
         this.turningEncoderReversed = turningEncoderReversed;
 
-        driveMotor = new CANSparkMax(driveMotorChannel, MotorType.kBrushless);
-        turningMotor = new CANSparkMax(turningMotorChannel, MotorType.kBrushless);
+        driveMotor = new CANSparkMax(driveMotorChannel, CANSparkMax.MotorType.kBrushless);
+        turningMotor = new CANSparkMax(turningMotorChannel, CANSparkMax.MotorType.kBrushless);
 
         driveEncoder = driveMotor.getEncoder();
         turningEncoder = turningMotor.getEncoder();
@@ -51,17 +48,17 @@ public class SwerveModule {
         );
     }
 
-    public void setDesiredState(SwerveModuleState desiredState) {
+    public void setDesiredState(SwerveModuleState state) {
         // Optimize the reference state to avoid spinning further than 90 degrees
-        SwerveModuleState state = SwerveModuleState.optimize(desiredState, 
+        SwerveModuleState optimizedState = SwerveModuleState.optimize(state, 
             new Rotation2d(Math.toRadians(getTurningPosition())));
 
-        // Calculate the drive output from the drive PID controller
-        final double driveOutput = state.speedMetersPerSecond;
+        // Calculate the drive output from the drive encoder velocity
+        final double driveOutput = optimizedState.speedMetersPerSecond;
         
         // Calculate the turning motor output from the turning PID controller
         final double turnOutput = turningPIDController.calculate(
-            getTurningPosition(), state.angle.getDegrees());
+            getTurningPosition(), optimizedState.angle.getDegrees());
 
         driveMotor.set(driveOutput);
         turningMotor.set(turnOutput);
@@ -77,8 +74,16 @@ public class SwerveModule {
         return turningEncoderReversed ? -position : position;
     }
 
+    public double getDriveSpeed() {
+        return driveMotor.get();
+    }
+
+    public double getSteerAngle() {
+        return getTurningPosition();
+    }
+
     public void stop() {
-        driveMotor.set(0);
-        turningMotor.set(0);
+        driveMotor.stopMotor();
+        turningMotor.stopMotor();
     }
 }

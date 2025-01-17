@@ -1,42 +1,31 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class DriveSubsystem extends SubsystemBase {
     // Locations for the swerve drive modules relative to the robot center
-    private final Translation2d frontLeftLocation = new Translation2d(0.381, 0.381);
-    private final Translation2d frontRightLocation = new Translation2d(0.381, -0.381);
-    private final Translation2d backLeftLocation = new Translation2d(-0.381, 0.381);
-    private final Translation2d backRightLocation = new Translation2d(-0.381, -0.381);
+    private final Translation2d m_frontLeftLocation = new Translation2d(0.381, 0.381);
+    private final Translation2d m_frontRightLocation = new Translation2d(0.381, -0.381);
+    private final Translation2d m_backLeftLocation = new Translation2d(-0.381, 0.381);
+    private final Translation2d m_backRightLocation = new Translation2d(-0.381, -0.381);
 
     // Motor controllers for the swerve drive modules
-    private final CANSparkMax frontLeftDriveMotor = new CANSparkMax(4, MotorType.kBrushless);
-    private final CANSparkMax frontLeftSteerMotor = new CANSparkMax(3, MotorType.kBrushless);
-    private final CANSparkMax frontRightDriveMotor = new CANSparkMax(6, MotorType.kBrushless);
-    private final CANSparkMax frontRightSteerMotor = new CANSparkMax(5, MotorType.kBrushless);
-    private final CANSparkMax backLeftDriveMotor = new CANSparkMax(2, MotorType.kBrushless);
-    private final CANSparkMax backLeftSteerMotor = new CANSparkMax(1, MotorType.kBrushless);
-    private final CANSparkMax backRightDriveMotor = new CANSparkMax(8, MotorType.kBrushless);
-    private final CANSparkMax backRightSteerMotor = new CANSparkMax(7, MotorType.kBrushless);
+    private final SwerveModule m_frontLeft = new SwerveModule(1, 2, false, false);
+    private final SwerveModule m_frontRight = new SwerveModule(3, 4, true, true);
+    private final SwerveModule m_backLeft = new SwerveModule(5, 6, false, false);
+    private final SwerveModule m_backRight = new SwerveModule(7, 8, true, true);
 
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
-        frontLeftLocation, frontRightLocation, backLeftLocation, backRightLocation);
+        m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
 
     private int updateCounter = 0;
 
     public DriveSubsystem() {
-        // Invert the right side motors
-        frontRightDriveMotor.setInverted(true);
-        frontRightSteerMotor.setInverted(true);
-        backRightDriveMotor.setInverted(true);
-        backRightSteerMotor.setInverted(true);
     }
 
     /**
@@ -72,25 +61,17 @@ public class DriveSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Drive/FL/Speed", swerveModuleStates[0].speedMetersPerSecond);
         SmartDashboard.putNumber("Drive/FL/Angle", swerveModuleStates[0].angle.getDegrees());
 
-        frontLeftDriveMotor.set(swerveModuleStates[0].speedMetersPerSecond / 4.0);  // Normalize back to -1 to 1
-        frontLeftSteerMotor.set(swerveModuleStates[0].angle.getRadians() / (2 * Math.PI));  // Normalize to -1 to 1
-        frontRightDriveMotor.set(swerveModuleStates[1].speedMetersPerSecond / 4.0);
-        frontRightSteerMotor.set(swerveModuleStates[1].angle.getRadians() / (2 * Math.PI));
-        backLeftDriveMotor.set(swerveModuleStates[2].speedMetersPerSecond / 4.0);
-        backLeftSteerMotor.set(swerveModuleStates[2].angle.getRadians() / (2 * Math.PI));
-        backRightDriveMotor.set(swerveModuleStates[3].speedMetersPerSecond / 4.0);
-        backRightSteerMotor.set(swerveModuleStates[3].angle.getRadians() / (2 * Math.PI));
+        m_frontLeft.setDesiredState(swerveModuleStates[0]);
+        m_frontRight.setDesiredState(swerveModuleStates[1]);
+        m_backLeft.setDesiredState(swerveModuleStates[2]);
+        m_backRight.setDesiredState(swerveModuleStates[3]);
     }
 
     public void stop() {
-        frontLeftDriveMotor.stopMotor();
-        frontLeftSteerMotor.stopMotor();
-        frontRightDriveMotor.stopMotor();
-        frontRightSteerMotor.stopMotor();
-        backLeftDriveMotor.stopMotor();
-        backLeftSteerMotor.stopMotor();
-        backRightDriveMotor.stopMotor();
-        backRightSteerMotor.stopMotor();
+        m_frontLeft.stop();
+        m_frontRight.stop();
+        m_backLeft.stop();
+        m_backRight.stop();
     }
 
     @Override
@@ -100,20 +81,20 @@ public class DriveSubsystem extends SubsystemBase {
         if (updateCounter >= 10) {
             try {
                 // Front Left Module
-                SmartDashboard.putNumber("Swerve/Front Left/Drive Speed", frontLeftDriveMotor.get());
-                SmartDashboard.putNumber("Swerve/Front Left/Steer Angle", frontLeftSteerMotor.get());
+                SmartDashboard.putNumber("Swerve/Front Left/Drive Speed", m_frontLeft.getDriveSpeed());
+                SmartDashboard.putNumber("Swerve/Front Left/Steer Angle", m_frontLeft.getSteerAngle());
                 
                 // Front Right Module
-                SmartDashboard.putNumber("Swerve/Front Right/Drive Speed", frontRightDriveMotor.get());
-                SmartDashboard.putNumber("Swerve/Front Right/Steer Angle", frontRightSteerMotor.get());
+                SmartDashboard.putNumber("Swerve/Front Right/Drive Speed", m_frontRight.getDriveSpeed());
+                SmartDashboard.putNumber("Swerve/Front Right/Steer Angle", m_frontRight.getSteerAngle());
                 
                 // Back Left Module
-                SmartDashboard.putNumber("Swerve/Back Left/Drive Speed", backLeftDriveMotor.get());
-                SmartDashboard.putNumber("Swerve/Back Left/Steer Angle", backLeftSteerMotor.get());
+                SmartDashboard.putNumber("Swerve/Back Left/Drive Speed", m_backLeft.getDriveSpeed());
+                SmartDashboard.putNumber("Swerve/Back Left/Steer Angle", m_backLeft.getSteerAngle());
                 
                 // Back Right Module
-                SmartDashboard.putNumber("Swerve/Back Right/Drive Speed", backRightDriveMotor.get());
-                SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", backRightSteerMotor.get());
+                SmartDashboard.putNumber("Swerve/Back Right/Drive Speed", m_backRight.getDriveSpeed());
+                SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", m_backRight.getSteerAngle());
             } catch (Exception e) {
                 System.err.println("Error updating SmartDashboard: " + e.getMessage());
             }
