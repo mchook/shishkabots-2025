@@ -5,6 +5,7 @@ import com.revrobotics.RelativeEncoder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 
 public class SwerveModule {
     private final CANSparkMax driveMotor;
@@ -85,5 +86,23 @@ public class SwerveModule {
     public void stop() {
         driveMotor.stopMotor();
         turningMotor.stopMotor();
+    }
+
+    /**
+     * Returns the current position of the module
+     */
+    public SwerveModulePosition getPosition() {
+        return new SwerveModulePosition(
+            getDrivePosition(),
+            new Rotation2d(Math.toRadians(getTurningPosition()))
+        );
+    }
+
+    /**
+     * Returns the current position of the drive encoder in meters
+     */
+    public double getDrivePosition() {
+        double position = driveEncoder.getPosition();
+        return position * (driveEncoderReversed ? -1.0 : 1.0);
     }
 }
