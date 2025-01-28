@@ -1,6 +1,9 @@
 package frc.robot.subsystems;
 
-import com.revrobotics.CANSparkMax;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.RelativeEncoder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -8,8 +11,8 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 
 public class SwerveModule {
-    private final CANSparkMax driveMotor;
-    private final CANSparkMax turningMotor;
+    private final SparkMax driveMotor;
+    private final SparkMax turningMotor;
     
     private final RelativeEncoder driveEncoder;
     private final RelativeEncoder turningEncoder;
@@ -27,8 +30,8 @@ public class SwerveModule {
         this.driveEncoderReversed = driveEncoderReversed;
         this.turningEncoderReversed = turningEncoderReversed;
 
-        driveMotor = new CANSparkMax(driveMotorChannel, CANSparkMax.MotorType.kBrushless);
-        turningMotor = new CANSparkMax(turningMotorChannel, CANSparkMax.MotorType.kBrushless);
+        driveMotor = new SparkMax(driveMotorChannel, SparkMax.MotorType.kBrushless);
+        turningMotor = new SparkMax(turningMotorChannel, SparkMax.MotorType.kBrushless);
 
         driveEncoder = driveMotor.getEncoder();
         turningEncoder = turningMotor.getEncoder();
@@ -38,8 +41,8 @@ public class SwerveModule {
         turningPIDController.enableContinuousInput(-180, 180);
 
         // Configure encoders and motors
-        driveMotor.restoreFactoryDefaults();
-        turningMotor.restoreFactoryDefaults();
+        restoreFactoryDefaults(driveMotor);
+        restoreFactoryDefaults(turningMotor);
     }
 
     public SwerveModuleState getState() {
@@ -104,5 +107,20 @@ public class SwerveModule {
     public double getDrivePosition() {
         double position = driveEncoder.getPosition();
         return position * (driveEncoderReversed ? -1.0 : 1.0);
+    }
+
+    private void restoreFactoryDefaults(SparkMax motor) {
+        SparkMaxConfig config = new SparkMaxConfig();
+
+        //config
+            //.inverted(true)
+            //.idleMode(IdleMode.kBrake)
+            //.smartCurrentConfig(new SmartCurrentConfig().stallLimit(40).freeLimit(40))
+            //.openLoopRampRate(0.5)
+            //.closedLoopRampRate(0.5)
+            //.feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+            //.pid(1.0, 0.0, 0.0);
+            
+        motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
 }
