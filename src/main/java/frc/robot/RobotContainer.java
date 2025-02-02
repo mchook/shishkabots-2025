@@ -22,7 +22,7 @@ public class RobotContainer {
   private final PS4Controller ps4Controller = new PS4Controller(0);
 
   // Set which controller to use (true for Xbox, false for PS4)
-  private final boolean useXboxController = false;
+  private final boolean useXboxController = true;
 
   private static final double DEADBAND = 0.1;
 

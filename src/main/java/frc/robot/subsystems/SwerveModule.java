@@ -61,11 +61,11 @@ public class SwerveModule {
         final double driveOutput = optimizedState.speedMetersPerSecond;
         
         // Calculate the turning motor output from the turning PID controller
-        final double turnOutput = turningPIDController.calculate(
-            getTurningPosition(), optimizedState.angle.getDegrees());
+        //final double turnOutput = turningPIDController.calculate(
+        //    getTurningPosition(), optimizedState.angle.getDegrees());
 
         driveMotor.set(driveOutput);
-        turningMotor.set(turnOutput);
+        turningMotor.set(optimizedState.angle.getDegrees());
     }
 
     private double getDriveVelocity() {
@@ -83,7 +83,8 @@ public class SwerveModule {
     }
 
     public double getSteerAngle() {
-        return getTurningPosition();
+        // return getTurningPosition();
+        return turningMotor.get();
     }
 
     public void stop() {

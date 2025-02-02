@@ -10,6 +10,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
@@ -41,6 +42,9 @@ public class DriveSubsystem extends SubsystemBase {
 
     private final Pigeon2 m_gyro = new Pigeon2(Constants.PIGEON_CAN_ID); // Update the ID based on your Pigeon's CAN ID
 
+    // initialize the field for simulator tracking
+    private final Field2d m_field = new Field2d();
+
     // Odometry for tracking robot pose
     private final SwerveDriveOdometry m_odometry;
 
@@ -53,16 +57,19 @@ public class DriveSubsystem extends SubsystemBase {
         // Reset the gyro
         m_gyro.reset();
 
+        // log field into smartdashboard
+        SmartDashboard.putData("Field", m_field);
+
         // Initialize odometry
         m_odometry = new SwerveDriveOdometry(
             kinematics,
-            getGyroRotation(),
+            m_gyro.getRotation2d(),  // example used built-in method to return as rotation2d unit
             new SwerveModulePosition[] {
                 m_frontLeft.getPosition(),
                 m_frontRight.getPosition(),
                 m_backLeft.getPosition(),
                 m_backRight.getPosition()
-            }
+            }, new Pose2d(8.2, 5, new Rotation2d())
         );
 
         // Initialize DataLogManager entries
@@ -164,12 +171,27 @@ public class DriveSubsystem extends SubsystemBase {
                 m_backRight.getPosition()
             }
         );
-
+        // set robot position in the field
+        m_field.setRobotPose(m_odometry.getPoseMeters());
         // Only update SmartDashboard every 10 cycles to reduce NT traffic
         updateCounter++;
         if (updateCounter >= 10) {
             try {
-                // Front Left Module
+
+                // log array of all swerve modules to be put into advantagescope simulation
+            double loggingState[] = {
+                m_frontLeft.getSteerAngle(),
+                m_frontLeft.getDriveSpeed(),
+                m_frontRight.getSteerAngle(),
+                m_frontRight.getDriveSpeed(),
+                m_backLeft.getSteerAngle(),
+                m_backLeft.getDriveSpeed(),
+                m_backRight.getSteerAngle(),
+                m_backRight.getDriveSpeed()
+            };
+
+            SmartDashboard.putNumberArray("SwerveModuleStates", loggingState);
+                /* // Front Left Module
                 SmartDashboard.putNumber("Swerve/Front Left/Drive Speed", m_frontLeft.getDriveSpeed());
                 SmartDashboard.putNumber("Swerve/Front Left/Steer Angle", m_frontLeft.getSteerAngle());
 
@@ -183,7 +205,7 @@ public class DriveSubsystem extends SubsystemBase {
 
                 // Back Right Module
                 SmartDashboard.putNumber("Swerve/Back Right/Drive Speed", m_backRight.getDriveSpeed());
-                SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", m_backRight.getSteerAngle());
+                SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", m_backRight.getSteerAngle()); */
 
                 // Add odometry data to SmartDashboard
                 var pose = getPose();
