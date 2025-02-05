@@ -1,14 +1,18 @@
 package frc.robot.subsystems;
 
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.RelativeEncoder;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import frc.robot.Constants;
 
 public class SwerveModule {
     private final SparkMax driveMotor;
@@ -17,7 +21,8 @@ public class SwerveModule {
     private final RelativeEncoder driveEncoder;
     private final RelativeEncoder turningEncoder;
 
-    private final PIDController turningPIDController;
+    private final SparkClosedLoopController drivePIDController;
+    private final SparkClosedLoopController turningPIDController;
 
     private final boolean driveEncoderReversed;
     private final boolean turningEncoderReversed;
@@ -27,22 +32,23 @@ public class SwerveModule {
             int turningMotorChannel,
             boolean driveEncoderReversed,
             boolean turningEncoderReversed) {
+
         this.driveEncoderReversed = driveEncoderReversed;
         this.turningEncoderReversed = turningEncoderReversed;
 
         driveMotor = new SparkMax(driveMotorChannel, SparkMax.MotorType.kBrushless);
         turningMotor = new SparkMax(turningMotorChannel, SparkMax.MotorType.kBrushless);
 
+        drivePIDController = driveMotor.getClosedLoopController();
+        turningPIDController = turningMotor.getClosedLoopController();
+
         driveEncoder = driveMotor.getEncoder();
         turningEncoder = turningMotor.getEncoder();
 
-        // PID controller for turning, assumes the encoder reports degrees and handles wrapping
-        turningPIDController = new PIDController(0.5, 0, 0);
-        turningPIDController.enableContinuousInput(-180, 180);
-
         // Configure encoders and motors
-        restoreFactoryDefaults(driveMotor);
-        restoreFactoryDefaults(turningMotor);
+        setSparkMaxConfig(driveMotor, driveEncoderReversed);
+        setSparkMaxConfig(turningMotor, turningEncoderReversed);
+
     }
 
     public SwerveModuleState getState() {
@@ -52,6 +58,7 @@ public class SwerveModule {
         );
     }
 
+
     public void setDesiredState(SwerveModuleState state) {
         // Optimize the reference state to avoid spinning further than 90 degrees
         SwerveModuleState optimizedState = SwerveModuleState.optimize(state, 
@@ -59,11 +66,12 @@ public class SwerveModule {
 
         // Calculate the drive output from the drive encoder velocity
         final double driveOutput = optimizedState.speedMetersPerSecond;
-        
-        // Calculate the turning motor output from the turning PID controller
-        //final double turnOutput = turningPIDController.calculate(
-        //    getTurningPosition(), optimizedState.angle.getDegrees());
 
+        // PID Controllers sets the velocity and angle pos as a reference to KEEP A CONSISTENT VALUE
+        drivePIDController.setReference(driveOutput, ControlType.kVelocity);
+        turningPIDController.setReference(optimizedState.angle.getRadians() * Constants.RadiansToMeters, ControlType.kPosition);
+
+        // motor control already handled by PID Controller. Set commands are kept for testing for now.
         driveMotor.set(driveOutput);
         turningMotor.set(optimizedState.angle.getDegrees());
     }
@@ -110,17 +118,18 @@ public class SwerveModule {
         return position * (driveEncoderReversed ? -1.0 : 1.0);
     }
 
-    private void restoreFactoryDefaults(SparkMax motor) {
+    private void setSparkMaxConfig(SparkMax motor, boolean isInverted) {
         SparkMaxConfig config = new SparkMaxConfig();
 
-        //config
-            //.inverted(true)
-            //.idleMode(IdleMode.kBrake)
-            //.smartCurrentConfig(new SmartCurrentConfig().stallLimit(40).freeLimit(40))
-            //.openLoopRampRate(0.5)
-            //.closedLoopRampRate(0.5)
-            //.feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            //.pid(1.0, 0.0, 0.0);
+        config
+            .inverted(isInverted)
+            .idleMode(IdleMode.kBrake);
+        config.encoder
+            .positionConversionFactor(Constants.ROTATIONS_TO_METERS)
+            .velocityConversionFactor(Constants.RPMToMetersPerSec);
+        config.closedLoop
+            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+            .pid(1.0, 0.0, 0.0);
             
         motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
