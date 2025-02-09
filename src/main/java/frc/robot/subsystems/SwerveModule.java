@@ -5,132 +5,141 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
-import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.sim.SparkMaxSim;
+
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
-import frc.robot.Constants;
 
 public class SwerveModule {
     private final SparkMax driveMotor;
     private final SparkMax turningMotor;
     
     private final RelativeEncoder driveEncoder;
-    private final RelativeEncoder turningEncoder;
+    private final AbsoluteEncoder turningEncoder;
 
-    private final SparkClosedLoopController drivePIDController;
-    private final SparkClosedLoopController turningPIDController;
+    private final SparkClosedLoopController driveClosedLoopController;
+    private final SparkClosedLoopController turningClosedLoopController;
 
-    private final boolean driveEncoderReversed;
-    private final boolean turningEncoderReversed;
+    // robot chasis is not angled perfectly with each module
+    private double chasisAngularOffset;
+
+    // doubles to mark the wanted driveSpeed, and turningPosition
+    private double desiredSpeed;
+    private double desiredAngle;
+
+    // motor and simulated versions of the drive and turning motors
+    private final DCMotor driveDCMotor;
+    private final DCMotor turningDCMotor; 
+    private final SparkMaxSim driveMotorSim;
+    private final SparkMaxSim turningMotorSim;
 
     public SwerveModule(
             int driveMotorChannel,
             int turningMotorChannel,
-            boolean driveEncoderReversed,
-            boolean turningEncoderReversed) {
-
-        this.driveEncoderReversed = driveEncoderReversed;
-        this.turningEncoderReversed = turningEncoderReversed;
+            double angularOffset) {
 
         driveMotor = new SparkMax(driveMotorChannel, SparkMax.MotorType.kBrushless);
         turningMotor = new SparkMax(turningMotorChannel, SparkMax.MotorType.kBrushless);
 
-        drivePIDController = driveMotor.getClosedLoopController();
-        turningPIDController = turningMotor.getClosedLoopController();
-
         driveEncoder = driveMotor.getEncoder();
-        turningEncoder = turningMotor.getEncoder();
+        turningEncoder = turningMotor.getAbsoluteEncoder();
 
+        driveClosedLoopController = driveMotor.getClosedLoopController();
+        turningClosedLoopController = turningMotor.getClosedLoopController();
+        
         // Configure encoders and motors
-        setSparkMaxConfig(driveMotor, driveEncoderReversed);
-        setSparkMaxConfig(turningMotor, turningEncoderReversed);
+        driveMotor.configure(Configs.SwerveModule.drivingConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        turningMotor.configure(Configs.SwerveModule.turningConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+        chasisAngularOffset = angularOffset;
+        driveEncoder.setPosition(0);
+        
+        // setup simulated motors
+        driveDCMotor = DCMotor.getNEO(1);
+        turningDCMotor = DCMotor.getNEO(1);
+
+        driveMotorSim = new SparkMaxSim(driveMotor, driveDCMotor);
+        turningMotorSim = new SparkMaxSim(turningMotor, turningDCMotor);
 
     }
 
     public SwerveModuleState getState() {
         return new SwerveModuleState(
             getDriveVelocity(),
-            new Rotation2d(Math.toRadians(getTurningPosition()))
+            new Rotation2d(getTurningPosition())
+        );
+    }
+    /**
+     * Returns the current position of the module
+     */
+    public SwerveModulePosition getPosition() {
+        // apply angular offset to encoder position to get position relative to chasis
+        return new SwerveModulePosition(
+            getDrivePosition(),
+            new Rotation2d(getTurningPosition())
         );
     }
 
+    public void setDesiredState(SwerveModuleState desiredState) {
+        // apply chasis angular offset to the desired state
+        SwerveModuleState correctedDesiredState = new SwerveModuleState();
+        correctedDesiredState.speedMetersPerSecond = desiredState.speedMetersPerSecond;
+        correctedDesiredState.angle = desiredState.angle.plus(Rotation2d.fromRadians(chasisAngularOffset));
 
-    public void setDesiredState(SwerveModuleState state) {
         // Optimize the reference state to avoid spinning further than 90 degrees
-        SwerveModuleState optimizedState = SwerveModuleState.optimize(state, 
-            new Rotation2d(Math.toRadians(getTurningPosition())));
+        correctedDesiredState.optimize(new Rotation2d(turningEncoder.getPosition()));
 
         // Calculate the drive output from the drive encoder velocity
-        final double driveOutput = optimizedState.speedMetersPerSecond;
+        desiredSpeed = correctedDesiredState.speedMetersPerSecond;
+        desiredAngle = correctedDesiredState.angle.getRadians();
 
         // PID Controllers sets the velocity and angle pos as a reference to KEEP A CONSISTENT VALUE
-        drivePIDController.setReference(driveOutput, ControlType.kVelocity);
-        turningPIDController.setReference(optimizedState.angle.getRadians() * Constants.RadiansToMeters, ControlType.kPosition);
-
-        // motor control already handled by PID Controller. Set commands are kept for testing for now.
-        driveMotor.set(driveOutput);
-        turningMotor.set(optimizedState.angle.getDegrees());
+        driveClosedLoopController.setReference(desiredSpeed, ControlType.kVelocity);
+        turningClosedLoopController.setReference(desiredAngle, ControlType.kPosition);
     }
 
     private double getDriveVelocity() {
-        double velocity = driveEncoder.getVelocity();
-        return driveEncoderReversed ? -velocity : velocity;
+        return driveEncoder.getVelocity();
     }
-
+    // gives the robot relative turning position (gives 0 degrees if robot moving 0 degrees)
     private double getTurningPosition() {
-        double position = turningEncoder.getPosition();
-        return turningEncoderReversed ? -position : position;
+        return turningEncoder.getPosition() - chasisAngularOffset;
     }
 
     public double getDriveSpeed() {
-        return driveMotor.get();
+        return getDriveVelocity();
     }
 
     public double getSteerAngle() {
-        // return getTurningPosition();
-        return turningMotor.get();
+        return getTurningPosition();
     }
 
     public void stop() {
         driveMotor.stopMotor();
         turningMotor.stopMotor();
-    }
 
-    /**
-     * Returns the current position of the module
-     */
-    public SwerveModulePosition getPosition() {
-        return new SwerveModulePosition(
-            getDrivePosition(),
-            new Rotation2d(Math.toRadians(getTurningPosition()))
-        );
+        desiredSpeed = 0;
+        desiredAngle = 0;
     }
 
     /**
      * Returns the current position of the drive encoder in meters
      */
     public double getDrivePosition() {
-        double position = driveEncoder.getPosition();
-        return position * (driveEncoderReversed ? -1.0 : 1.0);
+        return driveEncoder.getPosition();
     }
 
-    private void setSparkMaxConfig(SparkMax motor, boolean isInverted) {
-        SparkMaxConfig config = new SparkMaxConfig();
+    // updates the states of the simulated motors (velocity, and pos), which automatically updates the encoders of the actual motors
+    public void updateSimulatorState() {
+        driveMotorSim.iterate(desiredSpeed, driveMotor.getBusVoltage(), 0.02);
+        
+        double positionError = desiredAngle - turningEncoder.getPosition();
+        double velocityRadPerSec = positionError / 0.02;
 
-        config
-            .inverted(isInverted)
-            .idleMode(IdleMode.kBrake);
-        config.encoder
-            .positionConversionFactor(Constants.ROTATIONS_TO_METERS)
-            .velocityConversionFactor(Constants.RPMToMetersPerSec);
-        config.closedLoop
-            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(1.0, 0.0, 0.0);
-            
-        motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    }
+        turningMotorSim.iterate(velocityRadPerSec, turningMotor.getBusVoltage(), 0.02);
+    } 
 }

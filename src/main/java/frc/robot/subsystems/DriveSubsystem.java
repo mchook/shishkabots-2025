@@ -13,34 +13,49 @@ import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants;
+import frc.robot.Constants.DriveConstants;
 import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.util.datalog.DoubleLogEntry;
 import edu.wpi.first.wpilibj.DataLogManager;
 
 public class DriveSubsystem extends SubsystemBase {
     // Locations for the swerve drive modules relative to the robot center
-    private final Translation2d m_frontLeftLocation = Constants.FRONT_LEFT_LOCATION;
-    private final Translation2d m_frontRightLocation = Constants.FRONT_RIGHT_LOCATION;
-    private final Translation2d m_backLeftLocation = Constants.BACK_LEFT_LOCATION;
-    private final Translation2d m_backRightLocation = Constants.BACK_RIGHT_LOCATION;
+    private final Translation2d m_frontLeftLocation = DriveConstants.FRONT_LEFT_LOCATION;
+    private final Translation2d m_frontRightLocation = DriveConstants.FRONT_RIGHT_LOCATION;
+    private final Translation2d m_backLeftLocation = DriveConstants.BACK_LEFT_LOCATION;
+    private final Translation2d m_backRightLocation = DriveConstants.BACK_RIGHT_LOCATION;
 
     // Motor controllers for the swerve drive modules
-    private final SwerveModule m_frontLeft = new SwerveModule(1, 2, false, false);
-    private final SwerveModule m_frontRight = new SwerveModule(3, 4, true, true);
-    private final SwerveModule m_backLeft = new SwerveModule(5, 6, false, false);
-    private final SwerveModule m_backRight = new SwerveModule(7, 8, true, true);
+    private final SwerveModule m_frontLeft = new SwerveModule(
+        DriveConstants.DRIVE_FRONT_LEFT_CAN_ID, 
+        DriveConstants.DRIVE_TURN_FRONT_LEFT_CAN_ID, 
+        DriveConstants.FRONT_LEFT_CHASIS_ANGULAR_OFFSET);
+
+    private final SwerveModule m_frontRight = new SwerveModule(
+        DriveConstants.DRIVE_FRONT_RIGHT_CAN_ID, 
+        DriveConstants.DRIVE_TURN_FRONT_RIGHT_CAN_ID, 
+        DriveConstants.FRONT_RIGHT_CHASIS_ANGULAR_OFFSET);
+        
+    private final SwerveModule m_backLeft = new SwerveModule(
+        DriveConstants.DRIVE_REAR_LEFT_CAN_ID, 
+        DriveConstants.DRIVE_TURN_REAR_LEFT_CAN_ID, 
+        DriveConstants.BACK_LEFT_CHASIS_ANGULAR_OFFSET);
+
+    private final SwerveModule m_backRight = new SwerveModule(
+        DriveConstants.DRIVE_REAR_RIGHT_CAN_ID, 
+        DriveConstants.DRIVE_TURN_REAR_RIGHT_CAN_ID, 
+        DriveConstants.BACK_RIGHT_CHASIS_ANGULAR_OFFSET);
 
     
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
         m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
 
     // Slew rate limiters to make joystick inputs more gentle
-    private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(Constants.MAX_MAGNITUDE_SLEW_RATE);
-    private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(Constants.MAX_MAGNITUDE_SLEW_RATE);
-    private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(Constants.MAX_ROTATIONAL_SLEW_RATE_RPS);
+    private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
+    private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
+    private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.MAX_ROTATIONAL_SLEW_RATE_RPS);
 
-    private final Pigeon2 m_gyro = new Pigeon2(Constants.PIGEON_CAN_ID); // Update the ID based on your Pigeon's CAN ID
+    private final Pigeon2 m_gyro = new Pigeon2(DriveConstants.PIGEON_CAN_ID); // Update the ID based on your Pigeon's CAN ID
 
     // initialize the field for simulator tracking
     private final Field2d m_field = new Field2d();
@@ -98,9 +113,9 @@ public class DriveSubsystem extends SubsystemBase {
         }
 
         // Convert the commanded speeds from [-1, 1] to real speeds
-        xSpeed = xSpeed * Constants.MAX_SPEED_IN_MPS;
-        ySpeed = ySpeed * Constants.MAX_SPEED_IN_MPS;
-        rot = rot * Constants.MAX_ANGULAR_SPEED_IN_RPS;
+        xSpeed = xSpeed * DriveConstants.MAX_SPEED_IN_MPS;
+        ySpeed = ySpeed * DriveConstants.MAX_SPEED_IN_MPS;
+        rot = rot * DriveConstants.MAX_ANGULAR_SPEED_IN_RPS;
 
         // Apply slew rate limiters to smooth out the inputs
         xSpeed = m_xSpeedLimiter.calculate(xSpeed);
@@ -177,7 +192,6 @@ public class DriveSubsystem extends SubsystemBase {
         updateCounter++;
         if (updateCounter >= 10) {
             try {
-
                 // log array of all swerve modules to be put into advantagescope simulation
             double loggingState[] = {
                 m_frontLeft.getSteerAngle(),
@@ -191,21 +205,6 @@ public class DriveSubsystem extends SubsystemBase {
             };
 
             SmartDashboard.putNumberArray("SwerveModuleStates", loggingState);
-                /* // Front Left Module
-                SmartDashboard.putNumber("Swerve/Front Left/Drive Speed", m_frontLeft.getDriveSpeed());
-                SmartDashboard.putNumber("Swerve/Front Left/Steer Angle", m_frontLeft.getSteerAngle());
-
-                // Front Right Module
-                SmartDashboard.putNumber("Swerve/Front Right/Drive Speed", m_frontRight.getDriveSpeed());
-                SmartDashboard.putNumber("Swerve/Front Right/Steer Angle", m_frontRight.getSteerAngle());
-
-                // Back Left Module
-                SmartDashboard.putNumber("Swerve/Back Left/Drive Speed", m_backLeft.getDriveSpeed());
-                SmartDashboard.putNumber("Swerve/Back Left/Steer Angle", m_backLeft.getSteerAngle());
-
-                // Back Right Module
-                SmartDashboard.putNumber("Swerve/Back Right/Drive Speed", m_backRight.getDriveSpeed());
-                SmartDashboard.putNumber("Swerve/Back Right/Steer Angle", m_backRight.getSteerAngle()); */
 
                 // Add odometry data to SmartDashboard
                 var pose = getPose();
@@ -247,5 +246,13 @@ public class DriveSubsystem extends SubsystemBase {
 
     private Rotation2d getHeading() {
         return getGyroRotation();
+    }
+    
+    @Override
+    public void simulationPeriodic() {
+        m_frontLeft.updateSimulatorState();
+        m_frontRight.updateSimulatorState();
+        m_backLeft.updateSimulatorState();
+        m_backRight.updateSimulatorState();
     }
 }
