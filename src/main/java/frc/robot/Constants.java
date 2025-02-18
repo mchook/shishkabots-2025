@@ -1,10 +1,13 @@
 package frc.robot;
 
+import com.pathplanner.lib.config.RobotConfig;
+
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.units.Units;
 
 public class Constants {
     public static final class DriveConstants {
+        public static RobotConfig pathPlannerConfig;
         // Chassis configuration
         public static final double TRACK_WIDTH = Units.Inches.of(26.5).in(Units.Meters);
         // Distance between centers of right and left wheels on robot
@@ -38,12 +41,13 @@ public class Constants {
         
         public static final int PIGEON_CAN_ID = 8;
 
-        public static final double MAX_SPEED_IN_MPS = 1.0; // meters per second
-        public static final double MAX_ANGULAR_SPEED_IN_RPS = 0.55 * Math.PI; // radians per second
+        public static final double MAX_SPEED_IN_MPS = 4.0; // meters per second
+        public static final double MAX_ANGULAR_SPEED_IN_RPS = 1 * Math.PI; // radians per second
 
         public static final double MAX_DIRECTION_SLEW_RATE_RPS = 1.3; // radians per second
         public static final double MAX_MAGNITUDE_SLEW_RATE = 1.8; // percent per second (1 = 100%)
         public static final double MAX_ROTATIONAL_SLEW_RATE_RPS = 2.0; // percent per second (1 = 100%)
+
     }
     public static final class ModuleConstants {
         // Wheel Diameter (estimated in meters)
@@ -62,6 +66,7 @@ public class Constants {
         public static final double DRIVE_MOTOR_FREE_SPEED_RPS = NeoMotorConstants.FREE_SPEED_RPM / 60;
         public static final double DRIVE_WHEEL_FREE_SPEED_RPS = (Math.PI * WHEEL_DIAMETER 
         * DRIVE_MOTOR_FREE_SPEED_RPS) / DRIVE_MOTOR_REDUCTION;
+
 
         // feedforward gain for drive motor. helps predict required motor output for a desired speed
         public static final double DRIVE_VELOCITY_FEEDFOWARD = 1 / DRIVE_WHEEL_FREE_SPEED_RPS;

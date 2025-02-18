@@ -4,18 +4,27 @@
 
 package frc.robot;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+
 import edu.wpi.first.wpilibj.PS4Controller;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.AutonomousCommand;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.ElevatorSubsystem;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
   // The robot's subsystems
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
+  private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(0, 1, 2);
+  private final PathPlannerAuto safeStart = new PathPlannerAuto("safe-start");
+  private final PathPlannerAuto diagonalTest = new PathPlannerAuto("diagonaltest");
+  private final SendableChooser<Command> autoChooser;
 
   // The driver's controllers
   private final XboxController xboxController = new XboxController(1);
@@ -50,7 +59,6 @@ public class RobotContainer {
 
   public RobotContainer() {
     configureBindings();
-
     // Set up the default command for the drive subsystem
     driveSubsystem.setDefaultCommand(
         new DefaultDriveCommand(
@@ -60,6 +68,8 @@ public class RobotContainer {
             () -> getRotationInput() * 0.5  // Rotation
         )
     );
+
+    autoChooser = AutoBuilder.buildAutoChooser("bottom-start");
   }
 
   private void configureBindings() {
@@ -99,6 +109,7 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // Create and return the autonomous command
-    return new AutonomousCommand(driveSubsystem, 2.0);
+    //return new AutonomousCommand(driveSubsystem, 2.0);
+    return autoChooser.getSelected();
   }
 }

@@ -1,6 +1,11 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -17,6 +22,7 @@ import frc.robot.Constants.DriveConstants;
 import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.util.datalog.DoubleLogEntry;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
 
 public class DriveSubsystem extends SubsystemBase {
     // Locations for the swerve drive modules relative to the robot center
@@ -56,7 +62,6 @@ public class DriveSubsystem extends SubsystemBase {
     private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.MAX_ROTATIONAL_SLEW_RATE_RPS);
 
     private final Pigeon2 m_gyro = new Pigeon2(DriveConstants.PIGEON_CAN_ID); // Update the ID based on your Pigeon's CAN ID
-
     // initialize the field for simulator tracking
     private final Field2d m_field = new Field2d();
 
@@ -78,7 +83,7 @@ public class DriveSubsystem extends SubsystemBase {
         // Initialize odometry
         m_odometry = new SwerveDriveOdometry(
             kinematics,
-            m_gyro.getRotation2d(),  // example used built-in method to return as rotation2d unit
+            getGyroRotation(),  // example used built-in method to return as rotation2d unit
             new SwerveModulePosition[] {
                 m_frontLeft.getPosition(),
                 m_frontRight.getPosition(),
@@ -86,6 +91,38 @@ public class DriveSubsystem extends SubsystemBase {
                 m_backRight.getPosition()
             }, new Pose2d(8.2, 5, new Rotation2d())
         );
+
+        try{
+            DriveConstants.pathPlannerConfig = RobotConfig.fromGUISettings();
+          } catch (Exception e) {
+            // Handle exception as needed
+            e.printStackTrace();
+          }
+
+        // Configure AutoBuilder last
+        AutoBuilder.configure(
+                this::getPose, // Robot pose supplier
+                this::resetOdometry, // Method to reset odometry (will be called if your auto has a starting pose)
+                this::getCurrentSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+                (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
+                new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
+                        new PIDConstants(0.04, 0.0, 0.0), // Translation PID constants
+                        new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
+                ),
+                DriveConstants.pathPlannerConfig, // The robot configuration
+                () -> {
+                // Boolean supplier that controls when the path will be mirrored for the red alliance
+                // This will flip the path being followed to the red side of the field.
+                // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+
+                var alliance = DriverStation.getAlliance();
+                if (alliance.isPresent()) {
+                    return alliance.get() == DriverStation.Alliance.Red;
+                }
+                return false; 
+                }, 
+                this // Reference to this subsystem to set requirements
+        ); 
 
         // Initialize DataLogManager entries
         DataLog log = DataLogManager.getLog();
@@ -122,10 +159,14 @@ public class DriveSubsystem extends SubsystemBase {
         ySpeed = m_ySpeedLimiter.calculate(ySpeed);
         rot = m_rotLimiter.calculate(rot);
 
-        var swerveModuleStates = kinematics.toSwerveModuleStates(
-            new ChassisSpeeds(xSpeed, ySpeed, rot));
+        ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rot);
+        var swerveModuleStates = kinematics.toSwerveModuleStates(speeds);
 
         SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, 4.0);
+
+        SmartDashboard.putNumber("Chasis Speeds X", speeds.vxMetersPerSecond);
+        SmartDashboard.putNumber("Chasis Speeds Y", speeds.vyMetersPerSecond);
+        SmartDashboard.putNumber("Chasis Speeds Rotation", speeds.omegaRadiansPerSecond);
 
         // Debug output values
         SmartDashboard.putNumber("Drive/FL/Speed", swerveModuleStates[0].speedMetersPerSecond);
@@ -135,6 +176,13 @@ public class DriveSubsystem extends SubsystemBase {
         m_frontRight.setDesiredState(swerveModuleStates[1]);
         m_backLeft.setDesiredState(swerveModuleStates[2]);
         m_backRight.setDesiredState(swerveModuleStates[3]);
+    }
+
+    public void drive(ChassisSpeeds speeds) {
+        double xSpeed = speeds.vxMetersPerSecond;
+        double ySpeed = speeds.vyMetersPerSecond;
+        double rot = speeds.omegaRadiansPerSecond;
+        drive(xSpeed, ySpeed, rot);
     }
 
     public void stop() {
@@ -172,6 +220,10 @@ public class DriveSubsystem extends SubsystemBase {
             },
             pose
         );
+    }
+
+    public ChassisSpeeds getCurrentSpeeds() {
+        return kinematics.toChassisSpeeds(getModuleStates());
     }
 
     @Override
@@ -254,5 +306,15 @@ public class DriveSubsystem extends SubsystemBase {
         m_frontRight.updateSimulatorState();
         m_backLeft.updateSimulatorState();
         m_backRight.updateSimulatorState();
+
+        double angularVelocity = kinematics.toChassisSpeeds(getModuleStates()).omegaRadiansPerSecond;
+        updateGyroSimulatorState(angularVelocity);
+    }
+
+    public void updateGyroSimulatorState(double angularVelocity) {
+        // convert radians per second to degrees per second
+        double angularVelocityDegrees = angularVelocity * (180 / Math.PI);
+        double newYaw = m_gyro.getYaw().getValueAsDouble() +  angularVelocityDegrees * 0.02;
+        m_gyro.getSimState().setRawYaw(newYaw);
     }
 }
