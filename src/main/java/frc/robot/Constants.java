@@ -24,20 +24,20 @@ public class Constants {
         public static final double BACK_LEFT_CHASIS_ANGULAR_OFFSET = Math.PI;
         public static final double BACK_RIGHT_CHASIS_ANGULAR_OFFSET = Math.PI/2; */
         public static final double FRONT_LEFT_CHASIS_ANGULAR_OFFSET = 0;
-        public static final double FRONT_RIGHT_CHASIS_ANGULAR_OFFSET = 0.75 * Math.PI;
+        public static final double FRONT_RIGHT_CHASIS_ANGULAR_OFFSET = 0;
         public static final double BACK_LEFT_CHASIS_ANGULAR_OFFSET = 0;
         public static final double BACK_RIGHT_CHASIS_ANGULAR_OFFSET = 0;
 
         // Spark Max CAN Ids
-        public static final int DRIVE_FRONT_LEFT_CAN_ID = 4;
-        public static final int DRIVE_REAR_LEFT_CAN_ID = 2;
-        public static final int DRIVE_FRONT_RIGHT_CAN_ID = 6;
-        public static final int DRIVE_REAR_RIGHT_CAN_ID = 8;
+        public static final int DRIVE_FRONT_LEFT_CAN_ID = 1;
+        public static final int DRIVE_REAR_LEFT_CAN_ID = 5;
+        public static final int DRIVE_FRONT_RIGHT_CAN_ID = 3;
+        public static final int DRIVE_REAR_RIGHT_CAN_ID = 7;
 
-        public static final int DRIVE_TURN_FRONT_LEFT_CAN_ID = 3;
-        public static final int DRIVE_TURN_REAR_LEFT_CAN_ID = 1;
-        public static final int DRIVE_TURN_FRONT_RIGHT_CAN_ID = 5;
-        public static final int DRIVE_TURN_REAR_RIGHT_CAN_ID = 7;
+        public static final int DRIVE_TURN_FRONT_LEFT_CAN_ID = 2;
+        public static final int DRIVE_TURN_REAR_LEFT_CAN_ID = 6;
+        public static final int DRIVE_TURN_FRONT_RIGHT_CAN_ID = 4;
+        public static final int DRIVE_TURN_REAR_RIGHT_CAN_ID = 8;
         
         public static final int PIGEON_CAN_ID = 8;
 
@@ -51,7 +51,7 @@ public class Constants {
     }
     public static final class ModuleConstants {
         // Wheel Diameter (estimated in meters)
-        public static final double WHEEL_DIAMETER = 0.0762;
+        public static final double WHEEL_DIAMETER = 0.0672;
 
         // The MAXSwerve module can be configured with one of three pinion gears: 12T, 13T, or 14T.
         // This changes the drive speed of the module (a pinion gear with more teeth will result in a
@@ -77,6 +77,7 @@ public class Constants {
 
         public static final double ROTATIONS_TO_RADIANS = 2 * Math.PI;
         public static final double RPM_TO_RADPS = 2 * Math.PI / 60.0;
+
     }
     public static final class NeoMotorConstants {
         // the maximum speed of a neo motor

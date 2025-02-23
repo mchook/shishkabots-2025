@@ -7,19 +7,31 @@
         {
           "type": "path",
           "data": {
-            "pathName": "bottom-start to top-right coral"
+            "pathName": "1, h"
           }
         },
         {
           "type": "wait",
           "data": {
-            "waitTime": 4.0
+            "waitTime": 2.0
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "coral to side"
+            "pathName": "2, h"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "3, h"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "4, h"
           }
         }
       ]

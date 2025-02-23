@@ -10,38 +10,43 @@ public class Configs {
     public static final class SwerveModule {
         // Make these public so they can be accessed from SwerveModule.java
         public static final SparkMaxConfig drivingConfig = new SparkMaxConfig();
+        public static final SparkMaxConfig drivingInvertedConfig = new SparkMaxConfig();
         public static final SparkMaxConfig turningConfig = new SparkMaxConfig();
 
-        static {
-            // configuration for sparkMax on swerve drive driveMotors
-            drivingConfig
-                .inverted(true)
+        public static void setDriveMotorSettings(SparkMaxConfig driveConfig, boolean inverted) {
+            driveConfig
+                .inverted(inverted ? true: false)
                 .idleMode(IdleMode.kBrake)
                 .smartCurrentLimit(40);
-            drivingConfig.encoder
+            driveConfig.encoder
                 .positionConversionFactor(ModuleConstants.ROTATIONS_TO_METERS)
                 .velocityConversionFactor(ModuleConstants.RPM_TO_MPS); // rotations per minute to MPS
-            drivingConfig.closedLoop
+            driveConfig.closedLoop
                 .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
                 .pid(0.04, 0, 0)
                 .velocityFF(ModuleConstants.DRIVE_VELOCITY_FEEDFOWARD)
                 .outputRange(-1, 1);
-
-            // configuration for sparkMax on swerve drive turningMotors
-            turningConfig
+        }
+        public static void setTurningMotorSettings(SparkMaxConfig turnConfig) {
+            turnConfig
                 .idleMode(IdleMode.kBrake)
                 .smartCurrentLimit(19);
-            turningConfig.absoluteEncoder
+            turnConfig.absoluteEncoder
                 .inverted(true)
                 .positionConversionFactor(ModuleConstants.ROTATIONS_TO_RADIANS)
                 .velocityConversionFactor(ModuleConstants.RPM_TO_RADPS);
-            turningConfig.closedLoop
+            turnConfig.closedLoop
                 .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
                 .pid(1, 0, 0)
                 .velocityFF(0)
                 .outputRange(-1, 1)
                 .positionWrappingEnabled(true)
                 .positionWrappingInputRange(0, ModuleConstants.ROTATIONS_TO_RADIANS);
+        }
+        static {
+            setDriveMotorSettings(drivingConfig, false);
+            setDriveMotorSettings(drivingInvertedConfig, true);
+            setTurningMotorSettings(turningConfig);
         }
     }
 

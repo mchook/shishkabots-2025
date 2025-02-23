@@ -22,8 +22,6 @@ public class RobotContainer {
   // The robot's subsystems
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
   private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(0, 1, 2);
-  private final PathPlannerAuto safeStart = new PathPlannerAuto("safe-start");
-  private final PathPlannerAuto diagonalTest = new PathPlannerAuto("diagonaltest");
   private final SendableChooser<Command> autoChooser;
 
   // The driver's controllers
@@ -69,7 +67,7 @@ public class RobotContainer {
         )
     );
 
-    autoChooser = AutoBuilder.buildAutoChooser("bottom-start");
+    autoChooser = AutoBuilder.buildAutoChooser("d");
   }
 
   private void configureBindings() {

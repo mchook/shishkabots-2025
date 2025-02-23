@@ -35,22 +35,26 @@ public class DriveSubsystem extends SubsystemBase {
     private final SwerveModule m_frontLeft = new SwerveModule(
         DriveConstants.DRIVE_FRONT_LEFT_CAN_ID, 
         DriveConstants.DRIVE_TURN_FRONT_LEFT_CAN_ID, 
-        DriveConstants.FRONT_LEFT_CHASIS_ANGULAR_OFFSET);
+        DriveConstants.FRONT_LEFT_CHASIS_ANGULAR_OFFSET,
+        true);
 
     private final SwerveModule m_frontRight = new SwerveModule(
         DriveConstants.DRIVE_FRONT_RIGHT_CAN_ID, 
         DriveConstants.DRIVE_TURN_FRONT_RIGHT_CAN_ID, 
-        DriveConstants.FRONT_RIGHT_CHASIS_ANGULAR_OFFSET);
+        DriveConstants.FRONT_RIGHT_CHASIS_ANGULAR_OFFSET,
+        false);
         
     private final SwerveModule m_backLeft = new SwerveModule(
         DriveConstants.DRIVE_REAR_LEFT_CAN_ID, 
         DriveConstants.DRIVE_TURN_REAR_LEFT_CAN_ID, 
-        DriveConstants.BACK_LEFT_CHASIS_ANGULAR_OFFSET);
+        DriveConstants.BACK_LEFT_CHASIS_ANGULAR_OFFSET,
+        true);
 
     private final SwerveModule m_backRight = new SwerveModule(
         DriveConstants.DRIVE_REAR_RIGHT_CAN_ID, 
         DriveConstants.DRIVE_TURN_REAR_RIGHT_CAN_ID, 
-        DriveConstants.BACK_RIGHT_CHASIS_ANGULAR_OFFSET);
+        DriveConstants.BACK_RIGHT_CHASIS_ANGULAR_OFFSET,
+        false);
 
     
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
@@ -106,7 +110,7 @@ public class DriveSubsystem extends SubsystemBase {
                 this::getCurrentSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-                        new PIDConstants(0.04, 0.0, 0.0), // Translation PID constants
+                        new PIDConstants(5, 0.0, 0.0), // Translation PID constants
                         new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
                 ),
                 DriveConstants.pathPlannerConfig, // The robot configuration
@@ -155,9 +159,9 @@ public class DriveSubsystem extends SubsystemBase {
         rot = rot * DriveConstants.MAX_ANGULAR_SPEED_IN_RPS;
 
         // Apply slew rate limiters to smooth out the inputs
-        xSpeed = m_xSpeedLimiter.calculate(xSpeed);
-        ySpeed = m_ySpeedLimiter.calculate(ySpeed);
-        rot = m_rotLimiter.calculate(rot);
+        //xSpeed = m_xSpeedLimiter.calculate(xSpeed);
+        //ySpeed = m_ySpeedLimiter.calculate(ySpeed);
+        //rot = m_rotLimiter.calculate(rot);
 
         ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rot);
         var swerveModuleStates = kinematics.toSwerveModuleStates(speeds);

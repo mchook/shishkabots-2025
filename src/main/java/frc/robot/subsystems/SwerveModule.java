@@ -40,7 +40,8 @@ public class SwerveModule {
     public SwerveModule(
             int driveMotorChannel,
             int turningMotorChannel,
-            double angularOffset) {
+            double angularOffset,
+            boolean inverted) {
 
         driveMotor = new SparkMax(driveMotorChannel, SparkMax.MotorType.kBrushless);
         turningMotor = new SparkMax(turningMotorChannel, SparkMax.MotorType.kBrushless);
@@ -52,7 +53,7 @@ public class SwerveModule {
         turningClosedLoopController = turningMotor.getClosedLoopController();
         
         // Configure encoders and motors
-        driveMotor.configure(Configs.SwerveModule.drivingConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        driveMotor.configure(inverted ? Configs.SwerveModule.drivingInvertedConfig : Configs.SwerveModule.drivingConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         turningMotor.configure(Configs.SwerveModule.turningConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         chasisAngularOffset = angularOffset;
@@ -89,7 +90,7 @@ public class SwerveModule {
         SwerveModuleState correctedDesiredState = new SwerveModuleState();
         correctedDesiredState.speedMetersPerSecond = desiredState.speedMetersPerSecond;
         correctedDesiredState.angle = desiredState.angle.plus(Rotation2d.fromRadians(chasisAngularOffset));
-
+        
         // Optimize the reference state to avoid spinning further than 90 degrees
         correctedDesiredState.optimize(new Rotation2d(turningEncoder.getPosition()));
 
