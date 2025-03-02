@@ -14,14 +14,17 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.AutonomousCommand;
+import frc.robot.commands.LimelightDebugCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
+import frc.robot.subsystems.LimelightSubsystem;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
   // The robot's subsystems
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
   private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(0, 1, 2);
+  private final LimelightSubsystem limelightSubsystem = new LimelightSubsystem();
   private final SendableChooser<Command> autoChooser;
 
   // The driver's controllers
@@ -67,7 +70,7 @@ public class RobotContainer {
         )
     );
 
-    autoChooser = AutoBuilder.buildAutoChooser("h");
+    autoChooser = AutoBuilder.buildAutoChooser("d");
   }
 
   private void configureBindings() {
@@ -102,6 +105,20 @@ public class RobotContainer {
                 () -> getRotationInput() * 0.25
             )
         );
+  }
+
+  private void configureDefaultCommands() {
+    driveSubsystem.setDefaultCommand(
+        new DefaultDriveCommand(
+            driveSubsystem,
+            () -> getForwardInput() * 0.5,  // Forward/backward
+            () -> getStrafeInput() * 0.5,   // Left/right
+            () -> getRotationInput() * 0.5  // Rotation
+        )
+    );
+    
+    // Set Limelight debug command as default
+    limelightSubsystem.setDefaultCommand(new LimelightDebugCommand(limelightSubsystem));
   }
 
   /**
