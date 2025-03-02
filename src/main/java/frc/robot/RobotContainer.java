@@ -16,12 +16,14 @@ import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.AutonomousCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
+import frc.robot.subsystems.LimelightSubsystem;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
   // The robot's subsystems
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
   private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(0, 1, 2);
+  private final LimelightSubsystem limelightSubsystem = new LimelightSubsystem();
   private final SendableChooser<Command> autoChooser;
 
   // The driver's controllers
