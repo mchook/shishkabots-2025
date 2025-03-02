@@ -47,6 +47,13 @@ public class ElevatorSubsystem extends SubsystemBase {
     // Position Control
     private double targetPosition = 0.0;
 
+    /*
+     * Elevator max height = 63 inches
+     * First level = 29 inches
+     * Second level = 44.5 inches
+     * Third level = 70 inches
+     */
+
     public ElevatorSubsystem(int motorCanId, int topLimitSwitchId, int bottomLimitSwitchId) {
         // Initialize motor and controller
         elevatorMotor = new SparkMax(motorCanId, SparkMax.MotorType.kBrushless);
