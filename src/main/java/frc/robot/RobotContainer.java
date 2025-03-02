@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.AutonomousCommand;
+import frc.robot.commands.LimelightDebugCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
@@ -59,16 +60,7 @@ public class RobotContainer {
 
   public RobotContainer() {
     configureBindings();
-    // Set up the default command for the drive subsystem
-    driveSubsystem.setDefaultCommand(
-        new DefaultDriveCommand(
-            driveSubsystem,
-            () -> getForwardInput() * 0.5,  // Forward/backward
-            () -> getStrafeInput() * 0.5,   // Left/right
-            () -> getRotationInput() * 0.5  // Rotation
-        )
-    );
-
+    configureDefaultCommands();
     autoChooser = AutoBuilder.buildAutoChooser("d");
   }
 
@@ -100,6 +92,20 @@ public class RobotContainer {
                 () -> getRotationInput() * 0.25
             )
         );
+  }
+
+  private void configureDefaultCommands() {
+    driveSubsystem.setDefaultCommand(
+        new DefaultDriveCommand(
+            driveSubsystem,
+            () -> getForwardInput() * 0.5,  // Forward/backward
+            () -> getStrafeInput() * 0.5,   // Left/right
+            () -> getRotationInput() * 0.5  // Rotation
+        )
+    );
+    
+    // Set Limelight debug command as default
+    limelightSubsystem.setDefaultCommand(new LimelightDebugCommand(limelightSubsystem));
   }
 
   /**
