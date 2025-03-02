@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.AutonomousCommand;
 import frc.robot.commands.LimelightDebugCommand;
+import frc.robot.commands.ElevatorTestCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
@@ -75,9 +76,27 @@ public class RobotContainer {
 
   private void configureBindings() {
     // Xbox Controller Bindings
-    new JoystickButton(xboxController, XboxController.Button.kB.value)
-        .onTrue(Commands.runOnce(() -> driveSubsystem.stop()));
-    
+    if (useXboxController) {
+      new JoystickButton(xboxController, XboxController.Button.kA.value)
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
+      new JoystickButton(xboxController, XboxController.Button.kB.value)
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
+      new JoystickButton(xboxController, XboxController.Button.kY.value)
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
+      new JoystickButton(xboxController, XboxController.Button.kX.value)
+          .whileTrue(new LimelightDebugCommand(limelightSubsystem));
+    } else {
+      new JoystickButton(ps4Controller, PS4Controller.Button.kCross.value)
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
+      new JoystickButton(ps4Controller, PS4Controller.Button.kCircle.value)
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
+      new JoystickButton(ps4Controller, PS4Controller.Button.kTriangle.value)
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
+      new JoystickButton(ps4Controller, PS4Controller.Button.kSquare.value)
+          .whileTrue(new LimelightDebugCommand(limelightSubsystem));
+    }
+
+    // command initializes itself once at the start, but doesn't update the starting pose?
     new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)
         .whileTrue(
             new DefaultDriveCommand(
@@ -88,14 +107,6 @@ public class RobotContainer {
             )
         );
 
-    // command initializes itself once at the start, but doesn't update the starting pose?
-    new JoystickButton(xboxController, XboxController.Button.kY.value)
-      .onTrue(Commands.runOnce(() -> driveSubsystem.driveToEndPose().schedule()));
-
-    // PS4 Controller Bindings
-    new JoystickButton(ps4Controller, PS4Controller.Button.kCircle.value)
-        .onTrue(Commands.runOnce(() -> driveSubsystem.stop()));
-    
     new JoystickButton(ps4Controller, PS4Controller.Button.kR1.value)
         .whileTrue(
             new DefaultDriveCommand(
