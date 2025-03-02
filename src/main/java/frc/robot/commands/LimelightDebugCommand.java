@@ -25,6 +25,10 @@ public class LimelightDebugCommand extends Command {
         SmartDashboard.putNumber("Limelight X", tx);
         SmartDashboard.putNumber("Limelight Y", ty);
         SmartDashboard.putNumber("Limelight Area", ta);
+        
+        // Add raw values for debugging
+        SmartDashboard.putNumber("Limelight Raw TV", m_limelight.getRawTargetValue());
+        SmartDashboard.putNumber("Limelight Target ID", m_limelight.getTargetID());
     }
 
     @Override

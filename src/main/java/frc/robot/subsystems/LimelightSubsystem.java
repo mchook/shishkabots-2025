@@ -54,10 +54,11 @@ public class LimelightSubsystem extends SubsystemBase {
     }
     
     /**
-     * @return true if the Limelight has a valid target
+     * @return whether the limelight has any valid targets (0 or 1)
      */
     public boolean hasValidTarget() {
-        return tv.getDouble(0.0) == 1.0;
+        double targetValue = getRawTargetValue();
+        return targetValue > 0.5;
     }
     
     /**
@@ -82,5 +83,37 @@ public class LimelightSubsystem extends SubsystemBase {
      */
     public void setPipeline(int pipeline) {
         m_limelightTable.getEntry("pipeline").setNumber(pipeline);
+    }
+    
+    /**
+     * Sets the exposure time for the camera
+     * @param exposure Exposure time in milliseconds (0-100)
+     */
+    public void setExposure(double exposure) {
+        m_limelightTable.getEntry("exposure").setNumber(exposure);
+    }
+
+    /**
+     * Sets the black level offset
+     * @param blackLevel Black level offset (0-100)
+     */
+    public void setBlackLevel(double blackLevel) {
+        m_limelightTable.getEntry("black_level").setNumber(blackLevel);
+    }
+
+    /**
+     * Gets the raw target detection value from NetworkTables
+     * @return raw tv value (0.0 if no target, 1.0 if target detected)
+     */
+    public double getRawTargetValue() {
+        return m_limelightTable.getEntry("tv").getDouble(0.0);
+    }
+
+    /**
+     * Gets the detected AprilTag ID
+     * @return AprilTag ID number, or 0.0 if no tag detected
+     */
+    public double getTargetID() {
+        return m_limelightTable.getEntry("tid").getDouble(0.0);
     }
 }
