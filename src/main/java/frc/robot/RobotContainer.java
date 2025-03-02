@@ -67,7 +67,7 @@ public class RobotContainer {
         )
     );
 
-    autoChooser = AutoBuilder.buildAutoChooser("d");
+    autoChooser = AutoBuilder.buildAutoChooser("h");
   }
 
   private void configureBindings() {
@@ -84,6 +84,10 @@ public class RobotContainer {
                 () -> getRotationInput() * 0.25
             )
         );
+
+    // command initializes itself once at the start, but doesn't update the starting pose?
+    new JoystickButton(xboxController, XboxController.Button.kY.value)
+      .onTrue(Commands.runOnce(() -> driveSubsystem.driveToEndPose().schedule()));
 
     // PS4 Controller Bindings
     new JoystickButton(ps4Controller, PS4Controller.Button.kCircle.value)

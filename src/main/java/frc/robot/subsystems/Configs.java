@@ -30,7 +30,7 @@ public class Configs {
         public static void setTurningMotorSettings(SparkMaxConfig turnConfig) {
             turnConfig
                 .idleMode(IdleMode.kBrake)
-                .smartCurrentLimit(19);
+                .smartCurrentLimit(20);
             turnConfig.absoluteEncoder
                 .inverted(true)
                 .positionConversionFactor(ModuleConstants.ROTATIONS_TO_RADIANS)

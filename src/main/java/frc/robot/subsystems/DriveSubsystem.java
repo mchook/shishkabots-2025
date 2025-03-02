@@ -1,13 +1,23 @@
 package frc.robot.subsystems;
 
+import java.util.List;
+
+import javax.sound.sampled.SourceDataLine;
+
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.path.GoalEndState;
+import com.pathplanner.lib.path.PathConstraints;
+import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.path.Waypoint;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -17,7 +27,10 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.Constants.DriveConstants;
 import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.util.datalog.DoubleLogEntry;
@@ -36,25 +49,25 @@ public class DriveSubsystem extends SubsystemBase {
         DriveConstants.DRIVE_FRONT_LEFT_CAN_ID, 
         DriveConstants.DRIVE_TURN_FRONT_LEFT_CAN_ID, 
         DriveConstants.FRONT_LEFT_CHASIS_ANGULAR_OFFSET,
-        true);
+        false);
 
     private final SwerveModule m_frontRight = new SwerveModule(
         DriveConstants.DRIVE_FRONT_RIGHT_CAN_ID, 
         DriveConstants.DRIVE_TURN_FRONT_RIGHT_CAN_ID, 
         DriveConstants.FRONT_RIGHT_CHASIS_ANGULAR_OFFSET,
-        false);
+        true);
         
     private final SwerveModule m_backLeft = new SwerveModule(
         DriveConstants.DRIVE_REAR_LEFT_CAN_ID, 
         DriveConstants.DRIVE_TURN_REAR_LEFT_CAN_ID, 
         DriveConstants.BACK_LEFT_CHASIS_ANGULAR_OFFSET,
-        true);
+        false);
 
     private final SwerveModule m_backRight = new SwerveModule(
         DriveConstants.DRIVE_REAR_RIGHT_CAN_ID, 
         DriveConstants.DRIVE_TURN_REAR_RIGHT_CAN_ID, 
         DriveConstants.BACK_RIGHT_CHASIS_ANGULAR_OFFSET,
-        false);
+        true);
 
     
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
@@ -261,6 +274,9 @@ public class DriveSubsystem extends SubsystemBase {
             };
 
             SmartDashboard.putNumberArray("SwerveModuleStates", loggingState);
+            for (int i = 0; i < loggingState.length; i++) {
+                SmartDashboard.putNumber("Swerve Module", loggingState[1]);
+            }
 
                 // Add odometry data to SmartDashboard
                 var pose = getPose();
@@ -302,6 +318,56 @@ public class DriveSubsystem extends SubsystemBase {
 
     private Rotation2d getHeading() {
         return getGyroRotation();
+    }
+    
+    private PathPlannerPath createPathToEndPose(Pose2d endPose) {
+        List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(
+            getPose(),
+            endPose
+        );
+        PathConstraints constraints = new PathConstraints(3.0, 3.0, 2 * Math.PI, 4 * Math.PI);
+        PathPlannerPath path = new PathPlannerPath(
+            waypoints, 
+            constraints, 
+            null, 
+            new GoalEndState(0, endPose.getRotation())
+        );
+        path.preventFlipping = true;
+        return path;
+    }
+
+    public Command driveToEndPose() {
+        Transform2d forward = new Transform2d(2, 2, getGyroRotation());
+        Pose2d testPose = getPose().transformBy(forward);
+        try {
+            PathPlannerPath path = createPathToEndPose(testPose);
+            return new FollowPathCommand(
+                path,
+                this::getPose, // Robot pose supplier
+                this::getCurrentSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+                (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
+                new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
+                        new PIDConstants(5.0, 0.0, 0.0), // Translation PID constants
+                        new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
+                ),
+                DriveConstants.pathPlannerConfig, // The robot configuration
+                () -> {
+                  // Boolean supplier that controls when the path will be mirrored for the red alliance
+                  // This will flip the path being followed to the red side of the field.
+                  // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+
+                  var alliance = DriverStation.getAlliance();
+                  if (alliance.isPresent()) {
+                    return alliance.get() == DriverStation.Alliance.Red;
+                  }
+                  return false;
+                },
+                this // Reference to this subsystem to set requirements
+            );
+        } catch (Exception e) {
+            DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
+            return Commands.none();
+        }
     }
     
     @Override

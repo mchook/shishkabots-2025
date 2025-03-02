@@ -3,9 +3,19 @@ package frc.robot;
 import com.pathplanner.lib.config.RobotConfig;
 
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.units.Units;
 
 public class Constants {
+      public static final class LimelightConstants {
+    // Translation from the center of the robot to the camera (robot coordinates).
+    public static final Translation3d kCameraToRobot =
+        new Translation3d(0, 0.3319, 0.465); // TODO: Not final
+    public static final double kResolutionWidth = 1280;
+    public static final double kResolutionHeight = 960;
+    // Limelight publish to `updateData()` delay
+    public static final double delayMillis = 10; // TODO: Make more accurate
+  }
     public static final class DriveConstants {
         public static RobotConfig pathPlannerConfig;
         // Chassis configuration
