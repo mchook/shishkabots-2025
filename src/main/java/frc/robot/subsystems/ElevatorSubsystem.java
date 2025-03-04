@@ -151,11 +151,14 @@ public class ElevatorSubsystem extends SubsystemBase {
      * Returns 0 if between levels
      */
     public int getCurrentLevel() {
-        double currentPos = getCurrentPosition();
-        if (Math.abs(currentPos - LEVEL_1_HEIGHT) < TOLERANCE) return 1;
-        if (Math.abs(currentPos - LEVEL_2_HEIGHT) < TOLERANCE) return 2;
-        if (Math.abs(currentPos - LEVEL_3_HEIGHT) < TOLERANCE) return 3;
-        return 0;
+        double position = getCurrentPosition();
+        if (position < LEVEL_1_HEIGHT + TOLERANCE) {
+            return 1;
+        } else if (position < LEVEL_2_HEIGHT + TOLERANCE) {
+            return 2;
+        } else {
+            return 3;
+        }
     }
 
     @Override
