@@ -24,7 +24,7 @@ public class LimelightSubsystem extends SubsystemBase {
         tv = m_limelightTable.getEntry("tv");
         
         // Set default pipeline
-        setPipeline(0);
+        setPipeline(1);
     }
     
     @Override
