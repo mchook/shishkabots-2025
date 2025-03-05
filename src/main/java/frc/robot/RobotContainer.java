@@ -24,7 +24,12 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 public class RobotContainer {
   // The robot's subsystems
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
-  private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(0, 1, 2);
+  private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(
+        Constants.ElevatorConstants.ELEVATOR_PRIMARY_MOTOR_ID,
+        Constants.ElevatorConstants.ELEVATOR_SECONDARY_MOTOR_ID,
+        Constants.ElevatorConstants.ELEVATOR_TOP_LIMIT_SWITCH_ID,
+        Constants.ElevatorConstants.ELEVATOR_BOTTOM_LIMIT_SWITCH_ID
+    );
   private final LimelightSubsystem limelightSubsystem = new LimelightSubsystem();
   private final SendableChooser<Command> autoChooser;
 
@@ -85,6 +90,10 @@ public class RobotContainer {
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
       new JoystickButton(xboxController, XboxController.Button.kX.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
+      
+      // Emergency stop for elevator (Start button)
+      new JoystickButton(xboxController, XboxController.Button.kStart.value)
+          .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
     } else {
       new JoystickButton(ps4Controller, PS4Controller.Button.kCross.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
@@ -94,6 +103,10 @@ public class RobotContainer {
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
       new JoystickButton(ps4Controller, PS4Controller.Button.kSquare.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
+          
+      // Emergency stop for elevator (Options button)
+      new JoystickButton(ps4Controller, PS4Controller.Button.kOptions.value)
+          .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
     }
 
     // command initializes itself once at the start, but doesn't update the starting pose?

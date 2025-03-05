@@ -9,14 +9,15 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
-
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.math.system.plant.DCMotor;
 
 public class ElevatorSubsystem extends SubsystemBase {
-    private final SparkMax elevatorMotor;
+    private final SparkMax primaryElevatorMotor;
+    private final SparkMax secondaryElevatorMotor;
     private final RelativeEncoder encoder;
     private final SparkClosedLoopController closedLoopController;
     private final DigitalInput topLimitSwitch;
@@ -24,7 +25,8 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     // Simulation
     private final DCMotor elevatorDCMotor;
-    private final SparkMaxSim elevatorMotorSim;
+    private final SparkMaxSim primaryElevatorMotorSim;
+    private final SparkMaxSim secondaryElevatorMotorSim;
 
     // Constants
     private static final double MAX_OUTPUT = 1.0;
@@ -32,11 +34,11 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double TOLERANCE = 0.5;
 
     // Elevator Position Constants (in encoder units)
-    private static final double BOTTOM_THRESHOLD = 0.0;
-    private static final double TOP_THRESHOLD = 100.0;  // Adjust based on actual max height
+    private static final double BOTTOM_THRESHOLD = 5.0;
+    private static final double TOP_THRESHOLD = 40.0;  // Adjust based on actual max height
     private static final double LEVEL_1_HEIGHT = 10.0;  // Ground/Bottom level
-    private static final double LEVEL_2_HEIGHT = 50.0;  // Mid level
-    private static final double LEVEL_3_HEIGHT = 90.0;  // Top level
+    private static final double LEVEL_2_HEIGHT = 20.0;  // Mid level
+    private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
 
     // PID Constants - Tune these values during testing
     private static final double kP = 0.1;
@@ -54,25 +56,31 @@ public class ElevatorSubsystem extends SubsystemBase {
      * Third level = 70 inches
      */
 
-    public ElevatorSubsystem(int motorCanId, int topLimitSwitchId, int bottomLimitSwitchId) {
-        // Initialize motor and controller
-        elevatorMotor = new SparkMax(motorCanId, SparkMax.MotorType.kBrushless);
-        encoder = elevatorMotor.getEncoder();
-        closedLoopController = elevatorMotor.getClosedLoopController();
+    public ElevatorSubsystem(int primaryMotorCanId, int secondaryMotorCanId, int topLimitSwitchId, int bottomLimitSwitchId) {
+        // Initialize motors
+        primaryElevatorMotor = new SparkMax(primaryMotorCanId, SparkMax.MotorType.kBrushless);
+        secondaryElevatorMotor = new SparkMax(secondaryMotorCanId, SparkMax.MotorType.kBrushless);
+        
+        // Get encoder and controller from primary motor
+        encoder = primaryElevatorMotor.getEncoder();
+        closedLoopController = primaryElevatorMotor.getClosedLoopController();
 
-        // Configure motor and PID
-        SparkMaxConfig config = new SparkMaxConfig();
-        config.closedLoop
+        // Configure the primary motor with PID
+        SparkMaxConfig primaryConfig = new SparkMaxConfig();
+        primaryConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
             .pid(kP, kI, kD)
             .velocityFF(kFF)
             .outputRange(MIN_OUTPUT, MAX_OUTPUT);
             
-        elevatorMotor.configure(
-            config,
+        primaryElevatorMotor.configure(
+            primaryConfig,
             ResetMode.kResetSafeParameters,
             PersistMode.kPersistParameters
         );
+        
+        // Initialize the secondary motor
+        secondaryElevatorMotor.set(0);
         
         // Initialize limit switches
         topLimitSwitch = new DigitalInput(topLimitSwitchId);
@@ -80,8 +88,10 @@ public class ElevatorSubsystem extends SubsystemBase {
 
         encoder.setPosition(0);
         
-        elevatorDCMotor = DCMotor.getNEO(1);
-        elevatorMotorSim = new SparkMaxSim(elevatorMotor, elevatorDCMotor);
+        // Initialize simulation
+        elevatorDCMotor = DCMotor.getNEO(2); // Using 2 NEOs
+        primaryElevatorMotorSim = new SparkMaxSim(primaryElevatorMotor, elevatorDCMotor);
+        secondaryElevatorMotorSim = new SparkMaxSim(secondaryElevatorMotor, elevatorDCMotor);
     }
 
     public void setTargetPosition(double position) {
@@ -96,14 +106,10 @@ public class ElevatorSubsystem extends SubsystemBase {
     }
 
     public void setSpeed(double speed) {
-        if ((speed > 0 && isAtTop()) || (speed < 0 && isAtBottom())) {
-            elevatorMotor.stopMotor();
-            return;
-        }
-
         // Apply speed limits
         speed = Math.max(MIN_OUTPUT, Math.min(MAX_OUTPUT, speed));
-        elevatorMotor.set(speed);
+        primaryElevatorMotor.set(speed);
+        secondaryElevatorMotor.set(speed);  // Keep motors synchronized
     }
 
     public boolean isAtTop() {
@@ -123,7 +129,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     }
 
     public void stop() {
-        elevatorMotor.stopMotor();
+        primaryElevatorMotor.stopMotor();
+        secondaryElevatorMotor.stopMotor();  // Stop both motors
     }
 
     /**
@@ -163,23 +170,31 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        // Add safety check
-        if (isAtTop() && getCurrentPosition() > TOP_THRESHOLD) {
+        // Manually synchronize the secondary motor with the primary
+        secondaryElevatorMotor.set(primaryElevatorMotor.get());
+        
+        // Safety checks - stop if either limit switch is triggered OR position exceeds thresholds
+        if (isAtTop() || getCurrentPosition() > TOP_THRESHOLD) {
             stop();
-            resetEncoder();  // Reset encoder to known position
         }
-        if (isAtBottom() && getCurrentPosition() < BOTTOM_THRESHOLD) {
+        
+        if (isAtBottom() || getCurrentPosition() < BOTTOM_THRESHOLD) {
             stop();
-            resetEncoder();  // Reset encoder to 0
         }
         
         updateTelemetry();
+        
+        // Update simulation
+        if (RobotBase.isSimulation()) {
+            updateSimulatorState();
+        }
     }
 
     public void updateSimulatorState() {
         double positionError = targetPosition - encoder.getPosition();
         double velocityInchPerSec = positionError / 0.02;  // Basic simulation
-        elevatorMotorSim.iterate(velocityInchPerSec, elevatorMotor.getBusVoltage(), 0.02);
+        primaryElevatorMotorSim.iterate(velocityInchPerSec, primaryElevatorMotor.getBusVoltage(), 0.02);
+        secondaryElevatorMotorSim.iterate(velocityInchPerSec, secondaryElevatorMotor.getBusVoltage(), 0.02);
     }
 
     private void updateTelemetry() {
@@ -189,7 +204,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         SmartDashboard.putBoolean("Elevator/AtTop", isAtTop());
         SmartDashboard.putBoolean("Elevator/AtBottom", isAtBottom());
         SmartDashboard.putBoolean("Elevator/AtTarget", atTargetPosition());
-        SmartDashboard.putNumber("Elevator/Current", elevatorMotor.getOutputCurrent());
-        SmartDashboard.putNumber("Elevator/Voltage", elevatorMotor.getBusVoltage());
+        SmartDashboard.putNumber("Elevator/Current", primaryElevatorMotor.getOutputCurrent());
+        SmartDashboard.putNumber("Elevator/Voltage", primaryElevatorMotor.getBusVoltage());
     }
 }

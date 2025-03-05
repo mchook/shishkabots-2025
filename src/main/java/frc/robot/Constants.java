@@ -93,4 +93,13 @@ public class Constants {
         // the maximum speed of a neo motor
         public static final double FREE_SPEED_RPM = 5676;
     }
+    public static final class ElevatorConstants {
+        // CAN IDs
+        public static final int ELEVATOR_PRIMARY_MOTOR_ID = 9;
+        public static final int ELEVATOR_SECONDARY_MOTOR_ID = 10;
+        
+        // DIO ports for limit switches
+        public static final int ELEVATOR_TOP_LIMIT_SWITCH_ID = 0;
+        public static final int ELEVATOR_BOTTOM_LIMIT_SWITCH_ID = 1;
+    }
 }
