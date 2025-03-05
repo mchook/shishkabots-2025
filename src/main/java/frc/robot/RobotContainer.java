@@ -23,9 +23,9 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
   // The robot's subsystems
-  private final DriveSubsystem driveSubsystem = new DriveSubsystem();
-  private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(0, 1, 2);
   private final LimelightSubsystem limelightSubsystem = new LimelightSubsystem();
+  private final DriveSubsystem driveSubsystem = new DriveSubsystem(limelightSubsystem);
+  private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(0, 1, 2);
   private final SendableChooser<Command> autoChooser;
 
   // The driver's controllers
@@ -37,6 +37,9 @@ public class RobotContainer {
 
   private static final double DEADBAND = 0.1;
 
+  public LimelightSubsystem getLimelightSubsystem() {
+    return limelightSubsystem;
+  }
   private double applyDeadband(double value) {
     if (Math.abs(value) < DEADBAND) {
       return 0.0;

@@ -2,8 +2,6 @@ package frc.robot.subsystems;
 
 import java.util.List;
 
-import javax.sound.sampled.SourceDataLine;
-
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
@@ -30,7 +28,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants;
 import frc.robot.Constants.DriveConstants;
 import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.util.datalog.DoubleLogEntry;
@@ -38,6 +35,11 @@ import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 
 public class DriveSubsystem extends SubsystemBase {
+    // limelight camera to track apriltags
+    private LimelightSubsystem m_LimelightSubsystem;
+    // PoseEstimator for tracking robot pose
+    private PoseEstimator m_PoseEstimator;
+
     // Locations for the swerve drive modules relative to the robot center
     private final Translation2d m_frontLeftLocation = DriveConstants.FRONT_LEFT_LOCATION;
     private final Translation2d m_frontRightLocation = DriveConstants.FRONT_RIGHT_LOCATION;
@@ -74,40 +76,27 @@ public class DriveSubsystem extends SubsystemBase {
         m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
 
     // Slew rate limiters to make joystick inputs more gentle
-    private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
-    private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
-    private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.MAX_ROTATIONAL_SLEW_RATE_RPS);
+    //private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
+    //private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
+    //private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.MAX_ROTATIONAL_SLEW_RATE_RPS);
 
     private final Pigeon2 m_gyro = new Pigeon2(DriveConstants.PIGEON_CAN_ID); // Update the ID based on your Pigeon's CAN ID
     // initialize the field for simulator tracking
     private final Field2d m_field = new Field2d();
-
-    // Odometry for tracking robot pose
-    private final SwerveDriveOdometry m_odometry;
 
     private int updateCounter = 0;
 
     private DoubleLogEntry m_speedLog;
     private DoubleLogEntry m_headingLog;
 
-    public DriveSubsystem() {
+    public DriveSubsystem(LimelightSubsystem limelight) {
+        m_LimelightSubsystem = limelight;
+        m_PoseEstimator = new PoseEstimator(this, m_LimelightSubsystem);
         // Reset the gyro
         m_gyro.reset();
 
         // log field into smartdashboard
         SmartDashboard.putData("Field", m_field);
-
-        // Initialize odometry
-        m_odometry = new SwerveDriveOdometry(
-            kinematics,
-            getGyroRotation(),  // example used built-in method to return as rotation2d unit
-            new SwerveModulePosition[] {
-                m_frontLeft.getPosition(),
-                m_frontRight.getPosition(),
-                m_backLeft.getPosition(),
-                m_backRight.getPosition()
-            }, new Pose2d(8.2, 5, new Rotation2d())
-        );
 
         try{
             DriveConstants.pathPlannerConfig = RobotConfig.fromGUISettings();
@@ -220,63 +209,48 @@ public class DriveSubsystem extends SubsystemBase {
      * Returns the current pose of the robot
      */
     public Pose2d getPose() {
-        return m_odometry.getPoseMeters();
+        return m_PoseEstimator.getPose2d();
     }
 
     /**
      * Resets the odometry to a known pose
      */
     public void resetOdometry(Pose2d pose) {
-        m_odometry.resetPosition(
-            getGyroRotation(),
-            new SwerveModulePosition[] {
-                m_frontLeft.getPosition(),
-                m_frontRight.getPosition(),
-                m_backLeft.getPosition(),
-                m_backRight.getPosition()
-            },
-            pose
-        );
+        m_PoseEstimator.setCurrentPose(pose);
     }
 
     public ChassisSpeeds getCurrentSpeeds() {
         return kinematics.toChassisSpeeds(getModuleStates());
     }
 
+    public SwerveDriveKinematics getDriveKinematics() {
+        return kinematics;
+    }
+
     @Override
     public void periodic() {
-        // Update odometry
-        m_odometry.update(
-            getGyroRotation(),
-            new SwerveModulePosition[] {
-                m_frontLeft.getPosition(),
-                m_frontRight.getPosition(),
-                m_backLeft.getPosition(),
-                m_backRight.getPosition()
-            }
-        );
-        // set robot position in the field
-        m_field.setRobotPose(m_odometry.getPoseMeters());
         // Only update SmartDashboard every 10 cycles to reduce NT traffic
         updateCounter++;
         if (updateCounter >= 10) {
             try {
+                // set robot position in the field
+                m_field.setRobotPose(m_PoseEstimator.getPose2d());
                 // log array of all swerve modules to be put into advantagescope simulation
-            double loggingState[] = {
-                m_frontLeft.getSteerAngle(),
-                m_frontLeft.getDriveSpeed(),
-                m_frontRight.getSteerAngle(),
-                m_frontRight.getDriveSpeed(),
-                m_backLeft.getSteerAngle(),
-                m_backLeft.getDriveSpeed(),
-                m_backRight.getSteerAngle(),
-                m_backRight.getDriveSpeed()
-            };
+                double loggingState[] = {
+                    m_frontLeft.getSteerAngle(),
+                    m_frontLeft.getDriveSpeed(),
+                    m_frontRight.getSteerAngle(),
+                    m_frontRight.getDriveSpeed(),
+                    m_backLeft.getSteerAngle(),
+                    m_backLeft.getDriveSpeed(),
+                    m_backRight.getSteerAngle(),
+                    m_backRight.getDriveSpeed()
+                };
 
-            SmartDashboard.putNumberArray("SwerveModuleStates", loggingState);
-            for (int i = 0; i < loggingState.length; i++) {
-                SmartDashboard.putNumber("Swerve Module", loggingState[1]);
-            }
+                SmartDashboard.putNumberArray("SwerveModuleStates", loggingState);
+                for (int i = 0; i < loggingState.length; i++) {
+                    SmartDashboard.putNumber("Swerve Module", loggingState[1]);
+                }
 
                 // Add odometry data to SmartDashboard
                 var pose = getPose();
@@ -307,7 +281,7 @@ public class DriveSubsystem extends SubsystemBase {
         }
     }
 
-    private SwerveModuleState[] getModuleStates() {
+    public SwerveModuleState[] getModuleStates() {
         return new SwerveModuleState[] {
             m_frontLeft.getState(),
             m_frontRight.getState(),
@@ -315,8 +289,16 @@ public class DriveSubsystem extends SubsystemBase {
             m_backRight.getState()
         };
     }
+    public SwerveModulePosition[] getModulePositions() {
+        return new SwerveModulePosition[] {
+            m_frontLeft.getPosition(),
+            m_frontRight.getPosition(),
+            m_backLeft.getPosition(),
+            m_backRight.getPosition()
+        };
+    }
 
-    private Rotation2d getHeading() {
+    public Rotation2d getHeading() {
         return getGyroRotation();
     }
     

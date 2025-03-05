@@ -1,13 +1,23 @@
 package frc.robot.subsystems;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.util.WPIUtilJNI;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.LimelightConstants;
 
 public class LimelightSubsystem extends SubsystemBase {
     private final NetworkTable m_limelightTable;
+    private AprilTagFieldLayout aprilTagField = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
+    private double millisTimeRecorded;
     
     // NetworkTable entries for common Limelight values
     private NetworkTableEntry tx;  // Horizontal offset from crosshair to target
@@ -35,6 +45,8 @@ public class LimelightSubsystem extends SubsystemBase {
         double currentY = ty.getDouble(0.0);
         double currentArea = ta.getDouble(0.0);
         double currentTarget = tv.getDouble(0.0);
+
+        millisTimeRecorded = WPIUtilJNI.now() * 1e-3;
         
         // You can also log these values to SmartDashboard for debugging
         SmartDashboard.putNumber("Limelight X", currentX);
@@ -124,7 +136,39 @@ public class LimelightSubsystem extends SubsystemBase {
      * Gets the detected AprilTag ID
      * @return AprilTag ID number, or 0.0 if no tag detected
      */
-    public double getTargetID() {
-        return m_limelightTable.getEntry("tid").getDouble(0.0);
+    public int getTargetID() {
+        return (int) m_limelightTable.getEntry("tid").getDouble(0.0);
+    }
+    public boolean isTargetValid() {
+        return m_limelightTable.getEntry("tv").getDouble(0.0) == 1;
+    }
+    
+    // get the timestamp of robot in miliseconds
+    public double getTimeRecordedInMilis() {
+        return millisTimeRecorded;
+    }
+    /*
+     * If it detects an AprilTag ID, get it's pose to estimate the robot location with tx, ty, heightDiff
+     */
+    public synchronized Pose2d getPose(Rotation2d robotRotation2d) {
+        // if not valid return null 
+        if (!isTargetValid()) {
+            return null;    
+        } 
+        Pose3d tag = aprilTagField.getTagPose(getTargetID()).orElseThrow(() -> new RuntimeException("Apriltag ID not found"));
+        double yaw = robotRotation2d.getRadians();
+        double heightDiff = tag.getZ() - LimelightConstants.kCameraToRobot.getZ();
+        double distance = heightDiff / Math.tan(getY());
+        double beta = yaw - getX();
+        double x = Math.cos(beta) * distance;
+        double y = Math.sin(beta) * distance;
+        Translation2d tagToCamera = new Translation2d(-x, -y);
+
+        Pose2d cameraPose =
+        new Pose2d(tag.toPose2d().getTranslation().plus(tagToCamera), new Rotation2d(yaw));
+
+        Translation2d offset = LimelightConstants.kCameraToRobot.toTranslation2d().rotateBy(robotRotation2d);
+        Pose2d pose = new Pose2d(cameraPose.getTranslation().minus(offset), new Rotation2d(yaw));
+        return pose;
     }
 }
