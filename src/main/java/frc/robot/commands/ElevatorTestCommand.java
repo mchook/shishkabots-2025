@@ -24,6 +24,14 @@ public class ElevatorTestCommand extends Command {
     }
 
     @Override
+    public void execute() {
+        // Optional: Add monitoring or additional behavior here
+        // For example:
+        // SmartDashboard.putNumber("Current Position", elevator.getCurrentPosition());
+        // SmartDashboard.putBoolean("Moving Up", elevator.isMovingUp());
+    }
+
+    @Override
     public boolean isFinished() {
         return elevator.atTargetPosition();
     }
