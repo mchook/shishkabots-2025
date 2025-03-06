@@ -102,4 +102,9 @@ public class Constants {
         public static final int ELEVATOR_TOP_LIMIT_SWITCH_ID = 0;
         public static final int ELEVATOR_BOTTOM_LIMIT_SWITCH_ID = 1;
     }
+    public static final class ShooterConstants {
+        // CAN IDs
+        public static final int SHOOTER_PRIMARY_MOTOR_ID = 11; // TODO: NOT FINAL
+        public static final int SHOOTER_SECONDARY_MOTOR_ID = 12; // TODO: ALSO NOT FINAL
+    }
 }

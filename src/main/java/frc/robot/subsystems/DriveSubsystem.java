@@ -112,7 +112,7 @@ public class DriveSubsystem extends SubsystemBase {
                 this::getCurrentSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-                        new PIDConstants(5, 0.0, 0.0), // Translation PID constants
+                        new PIDConstants(0.04, 0.0, 0.0), // Translation PID constants
                         new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
                 ),
                 DriveConstants.pathPlannerConfig, // The robot configuration
@@ -307,7 +307,7 @@ public class DriveSubsystem extends SubsystemBase {
             getPose(),
             endPose
         );
-        PathConstraints constraints = new PathConstraints(3.0, 3.0, 2 * Math.PI, 4 * Math.PI);
+        PathConstraints constraints = new PathConstraints(1.5, 1.5, 2 * Math.PI, 4 * Math.PI);
         PathPlannerPath path = new PathPlannerPath(
             waypoints, 
             constraints, 
@@ -329,7 +329,7 @@ public class DriveSubsystem extends SubsystemBase {
                 this::getCurrentSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-                        new PIDConstants(5.0, 0.0, 0.0), // Translation PID constants
+                        new PIDConstants(0.04, 0.0, 0.0), // Translation PID constants
                         new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
                 ),
                 DriveConstants.pathPlannerConfig, // The robot configuration

@@ -19,20 +19,22 @@ import frc.robot.commands.ElevatorTestCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
   // The robot's subsystems
-  //private final DriveSubsystem driveSubsystem = new DriveSubsystem();
   private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(
         Constants.ElevatorConstants.ELEVATOR_PRIMARY_MOTOR_ID,
         Constants.ElevatorConstants.ELEVATOR_SECONDARY_MOTOR_ID,
         Constants.ElevatorConstants.ELEVATOR_TOP_LIMIT_SWITCH_ID,
         Constants.ElevatorConstants.ELEVATOR_BOTTOM_LIMIT_SWITCH_ID
     );
+  /* private final ShooterSubsystem shooterSubsystem = new ShooterSubsystem(
+    Constants.ShooterConstants.SHOOTER_PRIMARY_MOTOR_ID,
+    Constants.ShooterConstants.SHOOTER_SECONDARY_MOTOR_ID); */
   private final LimelightSubsystem limelightSubsystem = new LimelightSubsystem();
   private final DriveSubsystem driveSubsystem = new DriveSubsystem(limelightSubsystem);
-  //private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem(0, 1, 2);
   private final SendableChooser<Command> autoChooser;
 
   // The driver's controllers
@@ -42,7 +44,7 @@ public class RobotContainer {
   // Set which controller to use (true for Xbox, false for PS4)
   private final boolean useXboxController = true;
 
-  private static final double DEADBAND = 0.1;
+  private static final double DEADBAND = 0.08;
 
   public LimelightSubsystem getLimelightSubsystem() {
     return limelightSubsystem;

@@ -9,6 +9,8 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -29,19 +31,21 @@ public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMaxSim secondaryElevatorMotorSim;
 
     // Constants
+    private static final double POSITION_CONVERSION_FACTOR = 1;
+    private static final double VELOCITY_CONVERSION_FACTOR = 1;
     private static final double MAX_OUTPUT = 1.0;
     private static final double MIN_OUTPUT = -1.0;
     private static final double TOLERANCE = 0.5;
 
     // Elevator Position Constants (in encoder units)
-    private static final double BOTTOM_THRESHOLD = 5.0;
+    private static final double BOTTOM_THRESHOLD = 0.0;
     private static final double TOP_THRESHOLD = 40.0;  // Adjust based on actual max height
     private static final double LEVEL_1_HEIGHT = 10.0;  // Ground/Bottom level
     private static final double LEVEL_2_HEIGHT = 20.0;  // Mid level
     private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
 
     // PID Constants - Tune these values during testing
-    private static final double kP = 0.1;
+    private static final double kP = 0.05;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.0;
@@ -67,6 +71,13 @@ public class ElevatorSubsystem extends SubsystemBase {
 
         // Configure the primary motor with PID
         SparkMaxConfig primaryConfig = new SparkMaxConfig();
+        
+        primaryConfig
+            .idleMode(IdleMode.kBrake)
+            .smartCurrentLimit(20);
+        primaryConfig.encoder
+            .positionConversionFactor(POSITION_CONVERSION_FACTOR)
+            .velocityConversionFactor(VELOCITY_CONVERSION_FACTOR);
         primaryConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
             .pid(kP, kI, kD)
@@ -170,6 +181,7 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
+        updateTelemetry();
         // Manually synchronize the secondary motor with the primary
         secondaryElevatorMotor.set(primaryElevatorMotor.get());
         
@@ -182,7 +194,6 @@ public class ElevatorSubsystem extends SubsystemBase {
             stop();
         }
         
-        updateTelemetry();
         
         // Update simulation
         if (RobotBase.isSimulation()) {

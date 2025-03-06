@@ -68,4 +68,19 @@ public class Configs {
                 .outputRange(-1, 1);
         }
     }
+    
+    public static final class Shooter {
+        public static final SparkMaxConfig primaryMotor = new SparkMaxConfig();
+
+        static {
+            primaryMotor
+                .idleMode(IdleMode.kBrake)
+                .smartCurrentLimit(20);
+            primaryMotor.closedLoop
+                .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+                .pid(1, 0, 0)
+                .velocityFF(1)
+                .outputRange(-1, 1);
+        }
+    }
 }

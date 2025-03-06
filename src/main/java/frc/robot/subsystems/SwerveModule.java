@@ -27,7 +27,7 @@ public class SwerveModule {
     // robot chasis is not angled perfectly with each module
     private double chasisAngularOffset;
 
-    // doubles to mark the wanted driveSpeed, and turningPosition
+    // mark the wanted driveSpeed, and turningPosition
     private double desiredSpeed;
     private double desiredAngle;
 

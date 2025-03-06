@@ -16,7 +16,7 @@ import frc.robot.Constants.LimelightConstants;
 
 public class LimelightSubsystem extends SubsystemBase {
     private final NetworkTable m_limelightTable;
-    private AprilTagFieldLayout aprilTagField = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
+    private AprilTagFieldLayout aprilTagField = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
     private double millisTimeRecorded;
     
     // NetworkTable entries for common Limelight values
@@ -35,7 +35,7 @@ public class LimelightSubsystem extends SubsystemBase {
         tv = m_limelightTable.getEntry("tv");
         
         // Set default pipeline
-        setPipeline(1);
+        setPipeline(0);
     }
     
     @Override

@@ -39,6 +39,7 @@ public class ElevatorTestCommand extends Command {
     @Override
     public void end(boolean interrupted) {
         if (interrupted) {
+            System.out.println("it stopped");
             elevator.stop();
         }
     }
