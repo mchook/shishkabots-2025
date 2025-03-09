@@ -28,6 +28,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.Constants.DriveConstants;
 import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.util.datalog.DoubleLogEntry;
@@ -112,7 +113,7 @@ public class DriveSubsystem extends SubsystemBase {
                 this::getCurrentSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-                        new PIDConstants(0.04, 0.0, 0.0), // Translation PID constants
+                        new PIDConstants(5, 0.0, 0.0), // Translation PID constants
                         new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
                 ),
                 DriveConstants.pathPlannerConfig, // The robot configuration
@@ -307,7 +308,7 @@ public class DriveSubsystem extends SubsystemBase {
             getPose(),
             endPose
         );
-        PathConstraints constraints = new PathConstraints(1.5, 1.5, 2 * Math.PI, 4 * Math.PI);
+        PathConstraints constraints = new PathConstraints(3.0, 3.0, 2 * Math.PI, 4 * Math.PI);
         PathPlannerPath path = new PathPlannerPath(
             waypoints, 
             constraints, 
@@ -319,17 +320,15 @@ public class DriveSubsystem extends SubsystemBase {
     }
 
     public Command driveToEndPose() {
-        Transform2d forward = new Transform2d(2, 2, getGyroRotation());
-        Pose2d testPose = getPose().transformBy(forward);
         try {
-            PathPlannerPath path = createPathToEndPose(testPose);
+            PathPlannerPath path = createPathToEndPose(new Pose2d(Constants.Locations.leftBranchLocations[0], new Rotation2d(Math.PI)));
             return new FollowPathCommand(
                 path,
                 this::getPose, // Robot pose supplier
                 this::getCurrentSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-                        new PIDConstants(0.04, 0.0, 0.0), // Translation PID constants
+                        new PIDConstants(4.0, 0.0, 0.0), // Translation PID constants
                         new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
                 ),
                 DriveConstants.pathPlannerConfig, // The robot configuration

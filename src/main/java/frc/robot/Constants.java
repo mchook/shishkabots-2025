@@ -16,6 +16,11 @@ public class Constants {
     // Limelight publish to `updateData()` delay
     public static final double delayMillis = 10; // TODO: Make more accurate
   }
+    public static final class Locations {
+        public static final Translation2d[] leftBranchLocations = {
+            new Translation2d(5.83809, 3.85728)
+        };
+    }
     public static final class DriveConstants {
         public static RobotConfig pathPlannerConfig;
         // Chassis configuration
