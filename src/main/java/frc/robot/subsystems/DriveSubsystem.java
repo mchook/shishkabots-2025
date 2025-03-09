@@ -76,11 +76,6 @@ public class DriveSubsystem extends SubsystemBase {
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
         m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
 
-    // Slew rate limiters to make joystick inputs more gentle
-    //private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
-    //private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
-    //private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.MAX_ROTATIONAL_SLEW_RATE_RPS);
-
     private final Pigeon2 m_gyro = new Pigeon2(DriveConstants.PIGEON_CAN_ID); // Update the ID based on your Pigeon's CAN ID
     // initialize the field for simulator tracking
     private final Field2d m_field = new Field2d();
@@ -321,7 +316,7 @@ public class DriveSubsystem extends SubsystemBase {
 
     public Command driveToEndPose() {
         try {
-            PathPlannerPath path = createPathToEndPose(new Pose2d(Constants.Locations.leftBranchLocations[0], new Rotation2d(Math.PI)));
+            PathPlannerPath path = createPathToEndPose(Constants.Locations.leftBranchLocations[0]);
             return new FollowPathCommand(
                 path,
                 this::getPose, // Robot pose supplier

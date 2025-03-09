@@ -5,6 +5,9 @@ import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
+
+import java.lang.invoke.ConstantBootstraps;
+
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.config.SparkMaxConfig;
@@ -15,6 +18,7 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import edu.wpi.first.math.system.plant.DCMotor;
 
 public class ElevatorSubsystem extends SubsystemBase {
@@ -31,8 +35,6 @@ public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMaxSim secondaryElevatorMotorSim;
 
     // Constants
-    private static final double POSITION_CONVERSION_FACTOR = 1;
-    private static final double VELOCITY_CONVERSION_FACTOR = 1;
     private static final double MAX_OUTPUT = 1.0;
     private static final double MIN_OUTPUT = -1.0;
     private static final double TOLERANCE = 0.5;
@@ -44,12 +46,6 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double LEVEL_2_HEIGHT = 20.0;  // Mid level
     private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
 
-    // PID Constants - Tune these values during testing
-    private static final double kP = 0.05;
-    private static final double kI = 0.0;
-    private static final double kD = 0.0;
-    private static final double kFF = 0.0;
-    
     // Position Control
     private double targetPosition = 0.0;
 
@@ -69,23 +65,9 @@ public class ElevatorSubsystem extends SubsystemBase {
         encoder = primaryElevatorMotor.getEncoder();
         closedLoopController = primaryElevatorMotor.getClosedLoopController();
 
-        // Configure the primary motor with PID
-        SparkMaxConfig primaryConfig = new SparkMaxConfig();
-        
-        primaryConfig
-            .idleMode(IdleMode.kBrake)
-            .smartCurrentLimit(20);
-        primaryConfig.encoder
-            .positionConversionFactor(POSITION_CONVERSION_FACTOR)
-            .velocityConversionFactor(VELOCITY_CONVERSION_FACTOR);
-        primaryConfig.closedLoop
-            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(kP, kI, kD)
-            .velocityFF(kFF)
-            .outputRange(MIN_OUTPUT, MAX_OUTPUT);
-            
+        // set motor configurations from the Configs.Elevator class
         primaryElevatorMotor.configure(
-            primaryConfig,
+            Configs.Elevator.primaryConfig,
             ResetMode.kResetSafeParameters,
             PersistMode.kPersistParameters
         );
