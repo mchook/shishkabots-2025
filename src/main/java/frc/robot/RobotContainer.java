@@ -97,7 +97,9 @@ public class RobotContainer {
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
       new JoystickButton(xboxController, XboxController.Button.kX.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
-      
+    // test my drive to preset position command
+      new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
+        .onTrue(Commands.runOnce(() -> driveSubsystem.driveToEndPose().schedule()));
       // Emergency stop for elevator (Start button)
       new JoystickButton(xboxController, XboxController.Button.kStart.value)
           .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
@@ -160,6 +162,6 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // Create and return the autonomous command
     //return new AutonomousCommand(driveSubsystem, 2.0);
-    return autoChooser.getSelected();
+    return driveSubsystem.driveToEndPose();
   }
 }
