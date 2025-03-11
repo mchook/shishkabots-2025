@@ -2,6 +2,8 @@ package frc.robot;
 
 import com.pathplanner.lib.config.RobotConfig;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.units.Units;
@@ -17,8 +19,23 @@ public class Constants {
     public static final double delayMillis = 10; // TODO: Make more accurate
   }
     public static final class Locations {
-        public static final Translation2d[] leftBranchLocations = {
-            new Translation2d(5.83809, 3.85728)
+        // lets say that the distance from april tag is 0.5 m, kind of eyeballed some measurements on pathplanner, should test to make sure
+        // correct
+        public static final Pose2d[] leftBranchLocations = {
+            new Pose2d(5.921, 3.867, new Rotation2d(Math.PI)),
+            new Pose2d(5.321, 5.189, new Rotation2d(-2.0/3 * Math.PI)),
+            new Pose2d(3.952, 5.310, new Rotation2d(-1.0/3 * Math.PI)),
+            new Pose2d(3.102, 4.192, new Rotation2d(0)),
+            new Pose2d(3.666, 2.906, new Rotation2d(1.0/3 * Math.PI)),    
+            new Pose2d(5.049, 2.755, new Rotation2d(2.0/3 * Math.PI))
+        };
+        public static final Pose2d[] rightBranchLocations = {
+            new Pose2d(5.921, 4.192, new Rotation2d(Math.PI)),
+            new Pose2d(5.049, 5.310, new Rotation2d(-2.0/3 * Math.PI)),
+            new Pose2d(3.666, 5.189, new Rotation2d(-1.0/3 * Math.PI)),
+            new Pose2d(3.102, 3.867, new Rotation2d(0)),
+            new Pose2d(3.952, 2.755, new Rotation2d(1.0/3 * Math.PI)),
+            new Pose2d(5.321, 2.906, new Rotation2d(2.0/3 * Math.PI))
         };
     }
     public static final class DriveConstants {
@@ -99,6 +116,12 @@ public class Constants {
         public static final double FREE_SPEED_RPM = 5676;
     }
     public static final class ElevatorConstants {
+
+        public static final int GEAR_RATIO = 6;
+        public static final double ELEVATOR_MOTOR_FREE_SPEED_RPS = NeoMotorConstants.FREE_SPEED_RPM / 60;
+        public static final double ELEVATOR_MAX_FREE_SPEED_RPS = ELEVATOR_MOTOR_FREE_SPEED_RPS / GEAR_RATIO;
+        public static final double ELEVATOR_MOTOR_VELOCITY_FEEDFORWARD = 1 / ELEVATOR_MAX_FREE_SPEED_RPS;
+
         // CAN IDs
         public static final int ELEVATOR_PRIMARY_MOTOR_ID = 9;
         public static final int ELEVATOR_SECONDARY_MOTOR_ID = 10;

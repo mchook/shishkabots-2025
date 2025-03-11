@@ -5,7 +5,6 @@
 package frc.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.commands.PathPlannerAuto;
 
 import edu.wpi.first.wpilibj.PS4Controller;
 import edu.wpi.first.wpilibj.XboxController;
@@ -13,13 +12,12 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.commands.DefaultDriveCommand;
-import frc.robot.commands.AutonomousCommand;
 import frc.robot.commands.LimelightDebugCommand;
+import frc.robot.commands.TestAllCoralPos;
 import frc.robot.commands.ElevatorTestCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
-import frc.robot.subsystems.ShooterSubsystem;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
@@ -98,8 +96,8 @@ public class RobotContainer {
       new JoystickButton(xboxController, XboxController.Button.kX.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
     // test my drive to preset position command
-      new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
-        .onTrue(Commands.runOnce(() -> driveSubsystem.driveToEndPose().schedule()));
+  //    new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
+  //      .onTrue(Commands.runOnce(() -> driveSubsystem.driveToEndPose().schedule()));
       // Emergency stop for elevator (Start button)
       new JoystickButton(xboxController, XboxController.Button.kStart.value)
           .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
@@ -162,6 +160,6 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // Create and return the autonomous command
     //return new AutonomousCommand(driveSubsystem, 2.0);
-    return driveSubsystem.driveToEndPose();
+    return new TestAllCoralPos(driveSubsystem);
   }
 }

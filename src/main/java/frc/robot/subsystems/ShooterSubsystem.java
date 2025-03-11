@@ -10,8 +10,8 @@ import com.revrobotics.spark.SparkMax;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class ShooterSubsystem extends SubsystemBase{
-    private SparkMax primaryMotor;
-    private SparkMax secondaryMotor;
+    private SparkMax topMotor;
+    private SparkMax bottomMotor;
     private SparkClosedLoopController ClosedLoopController;
 
     // CONSTANTS
@@ -22,11 +22,11 @@ public class ShooterSubsystem extends SubsystemBase{
     private boolean isHoldingCoral;
 
     public ShooterSubsystem(int primaryMotorCanId, int secondaryMotorCanId) {
-        primaryMotor = new SparkMax(primaryMotorCanId, MotorType.kBrushless);
-        secondaryMotor = new SparkMax(secondaryMotorCanId, MotorType.kBrushless);
-        ClosedLoopController = primaryMotor.getClosedLoopController();
+        topMotor = new SparkMax(primaryMotorCanId, MotorType.kBrushless);
+        bottomMotor = new SparkMax(secondaryMotorCanId, MotorType.kBrushless);
+        ClosedLoopController = topMotor.getClosedLoopController();
 
-        primaryMotor.configure(Configs.Shooter.primaryMotor, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        topMotor.configure(Configs.Shooter.primaryMotor, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         isHoldingCoral = false;
     }
@@ -40,16 +40,16 @@ public class ShooterSubsystem extends SubsystemBase{
         ClosedLoopController.setReference(velocityToShoot, ControlType.kVelocity);
     }
     public void stop() {
-        primaryMotor.stopMotor();
-        secondaryMotor.stopMotor();
+        topMotor.stopMotor();
+        bottomMotor.stopMotor();
     }
 
     @Override
     public void periodic() {
         if (isHoldingCoral) {
-        secondaryMotor.set(-primaryMotor.get());
+        bottomMotor.set(-topMotor.get());
         } else {
-            secondaryMotor.set(primaryMotor.get());
+            bottomMotor.set(topMotor.get());
         }
     }
 }

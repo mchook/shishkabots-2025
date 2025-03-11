@@ -5,6 +5,7 @@ import java.util.List;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
+import com.pathplanner.lib.commands.PathfindingCommand;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
@@ -15,14 +16,11 @@ import com.pathplanner.lib.path.Waypoint;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -109,7 +107,7 @@ public class DriveSubsystem extends SubsystemBase {
                 (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
                         new PIDConstants(5, 0.0, 0.0), // Translation PID constants
-                        new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
+                        new PIDConstants(3.0, 0.0, 0.0) // Rotation PID constants
                 ),
                 DriveConstants.pathPlannerConfig, // The robot configuration
                 () -> {
@@ -155,11 +153,6 @@ public class DriveSubsystem extends SubsystemBase {
         xSpeed = xSpeed * DriveConstants.MAX_SPEED_IN_MPS;
         ySpeed = ySpeed * DriveConstants.MAX_SPEED_IN_MPS;
         rot = rot * DriveConstants.MAX_ANGULAR_SPEED_IN_RPS;
-
-        // Apply slew rate limiters to smooth out the inputs
-        //xSpeed = m_xSpeedLimiter.calculate(xSpeed);
-        //ySpeed = m_ySpeedLimiter.calculate(ySpeed);
-        //rot = m_rotLimiter.calculate(rot);
 
         ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rot);
         var swerveModuleStates = kinematics.toSwerveModuleStates(speeds);
@@ -298,7 +291,12 @@ public class DriveSubsystem extends SubsystemBase {
         return getGyroRotation();
     }
     
-    private PathPlannerPath createPathToEndPose(Pose2d endPose) {
+    public Command driveToEndPose(Pose2d endPose) {
+        PathConstraints constraints = new PathConstraints(3.0, 3.0, 2 * Math.PI, 4 * Math.PI);
+
+        return AutoBuilder.pathfindToPose(endPose, constraints, 0.0);
+    }
+   /*  private PathPlannerPath createPathToEndPose(Pose2d endPose) {
         List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(
             getPose(),
             endPose
@@ -314,9 +312,9 @@ public class DriveSubsystem extends SubsystemBase {
         return path;
     }
 
-    public Command driveToEndPose() {
+    public Command driveToEndPose(Pose2d endPose) {
         try {
-            PathPlannerPath path = createPathToEndPose(Constants.Locations.leftBranchLocations[0]);
+            PathPlannerPath path = createPathToEndPose(endPose);
             return new FollowPathCommand(
                 path,
                 this::getPose, // Robot pose supplier
@@ -324,7 +322,7 @@ public class DriveSubsystem extends SubsystemBase {
                 (speeds, feedforwards) -> drive(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
                         new PIDConstants(4.0, 0.0, 0.0), // Translation PID constants
-                        new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants
+                        new PIDConstants(3.0, 0.0, 0.0) // Rotation PID constants
                 ),
                 DriveConstants.pathPlannerConfig, // The robot configuration
                 () -> {
@@ -344,7 +342,7 @@ public class DriveSubsystem extends SubsystemBase {
             DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
             return Commands.none();
         }
-    }
+    } */
     
     @Override
     public void simulationPeriodic() {
