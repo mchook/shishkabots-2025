@@ -107,6 +107,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         // Configure the secondary motor (without PID since it follows primary)
         SparkMaxConfig secondaryConfig = new SparkMaxConfig();
         secondaryConfig
+            .follow(primaryElevatorMotor) // Follow primary motor
             .idleMode(IdleMode.kBrake)  // Same brake mode as primary
             .smartCurrentLimit(MAX_CURRENT);
             

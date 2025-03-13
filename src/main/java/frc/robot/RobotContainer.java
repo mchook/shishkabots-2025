@@ -15,9 +15,11 @@ import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.LimelightDebugCommand;
 import frc.robot.commands.TestAllCoralPos;
 import frc.robot.commands.ElevatorTestCommand;
+import frc.robot.commands.ShootCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
@@ -28,9 +30,10 @@ public class RobotContainer {
         Constants.ElevatorConstants.ELEVATOR_TOP_LIMIT_SWITCH_ID,
         Constants.ElevatorConstants.ELEVATOR_BOTTOM_LIMIT_SWITCH_ID
     );
-  /* private final ShooterSubsystem shooterSubsystem = new ShooterSubsystem(
+  private final ShooterSubsystem shooterSubsystem = new ShooterSubsystem(
     Constants.ShooterConstants.SHOOTER_PRIMARY_MOTOR_ID,
-    Constants.ShooterConstants.SHOOTER_SECONDARY_MOTOR_ID); */
+    Constants.ShooterConstants.SHOOTER_SECONDARY_MOTOR_ID);
+
   private final LimelightSubsystem limelightSubsystem = new LimelightSubsystem();
   private final DriveSubsystem driveSubsystem = new DriveSubsystem(limelightSubsystem);
   private final SendableChooser<Command> autoChooser;
@@ -95,9 +98,11 @@ public class RobotContainer {
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
       new JoystickButton(xboxController, XboxController.Button.kX.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
-    // test my drive to preset position command
-  //    new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
-  //      .onTrue(Commands.runOnce(() -> driveSubsystem.driveToEndPose().schedule()));
+
+      // Shooter control - Right Bumper
+      new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)
+          .onTrue(new ShootCommand(shooterSubsystem));
+          
       // Emergency stop for elevator (Start button)
       new JoystickButton(xboxController, XboxController.Button.kStart.value)
           .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
@@ -110,6 +115,10 @@ public class RobotContainer {
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
       new JoystickButton(ps4Controller, PS4Controller.Button.kSquare.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
+
+      // Shooter control - R1 button
+      new JoystickButton(ps4Controller, PS4Controller.Button.kR1.value)
+          .onTrue(new ShootCommand(shooterSubsystem));
           
       // Emergency stop for elevator (Options button)
       new JoystickButton(ps4Controller, PS4Controller.Button.kOptions.value)
