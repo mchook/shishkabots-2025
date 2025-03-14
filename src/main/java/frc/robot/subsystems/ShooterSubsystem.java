@@ -27,7 +27,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private boolean hasColorSensor = false;
 
     // Motor configuration constants
-    private static final double SHOOT_VELOCITY = 3000.0; // RPM
+    private static final double SHOOT_VELOCITY = 1000.0; // RPM
     private static final int MAX_CURRENT = 40; // Amps
     private static final double kP = 0.005;
     private static final double kI = 0.0;
@@ -70,6 +70,8 @@ public class ShooterSubsystem extends SubsystemBase {
         // Configure the right motor (follower)
         SparkMaxConfig rightConfig = new SparkMaxConfig();
         rightConfig
+            .follow(leftMotor)
+            .inverted(true)
             .idleMode(IdleMode.kCoast)
             .smartCurrentLimit(MAX_CURRENT);
             
@@ -93,7 +95,7 @@ public class ShooterSubsystem extends SubsystemBase {
     public void stop() {
         System.out.println("Stopping shooter motors");
         leftMotor.stopMotor();
-        rightMotor.stopMotor();
+        // rightMotor.stopMotor();
     }
 
     /**
@@ -142,7 +144,7 @@ public class ShooterSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         // Right motor runs at opposite speed of left motor
-        rightMotor.set(-leftMotor.get());
+        //rightMotor.set(-leftMotor.get());
         
         // Update telemetry
         updateTelemetry();
