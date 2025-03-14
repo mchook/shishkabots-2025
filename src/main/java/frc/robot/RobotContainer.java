@@ -16,6 +16,7 @@ import frc.robot.commands.LimelightDebugCommand;
 import frc.robot.commands.TestAllCoralPos;
 import frc.robot.commands.ElevatorTestCommand;
 import frc.robot.commands.ShootCommand;
+import frc.robot.commands.PrepareShooterCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
@@ -91,7 +92,7 @@ public class RobotContainer {
     // Xbox Controller Bindings
     if (useXboxController) {
       new JoystickButton(xboxController, XboxController.Button.kA.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
+          .onTrue(new PrepareShooterCommand(shooterSubsystem));
       new JoystickButton(xboxController, XboxController.Button.kB.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
       new JoystickButton(xboxController, XboxController.Button.kY.value)
@@ -108,7 +109,7 @@ public class RobotContainer {
           .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
     } else {
       new JoystickButton(ps4Controller, PS4Controller.Button.kCross.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
+          .onTrue(new PrepareShooterCommand(shooterSubsystem));
       new JoystickButton(ps4Controller, PS4Controller.Button.kCircle.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
       new JoystickButton(ps4Controller, PS4Controller.Button.kTriangle.value)

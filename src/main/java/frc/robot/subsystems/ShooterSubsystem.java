@@ -12,10 +12,19 @@ import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.ColorSensorV3;
 
 import edu.wpi.first.wpilibj.I2C;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class ShooterSubsystem extends SubsystemBase {
+    // Shooter states
+    public enum ShooterState {
+        NO_CORAL,           // No coral in shooter, motors stopped
+        READY_TO_INTAKE,    // Motors spinning at intake velocity, waiting for coral
+        CORAL_INSIDE,       // Coral inside shooter, motors stopped
+        SHOOT_CORAL         // Shooting coral, motors at shooting velocity
+    }
+
     private final SparkMax leftMotor;
     private final SparkMax rightMotor;
     private final SparkClosedLoopController closedLoopController;
@@ -26,13 +35,20 @@ public class ShooterSubsystem extends SubsystemBase {
     private int lastProximity = 0;
     private boolean hasColorSensor = false;
 
+    // State management
+    private ShooterState currentState = ShooterState.NO_CORAL;
+    private final Timer stateTimer = new Timer();
+    private static final double INTAKE_TIMEOUT = 0.5; // seconds to wait for coral to be fully inside
+
     // Motor configuration constants
-    private static final double SHOOT_VELOCITY = 1000.0; // RPM
+    private static final double SHOOTING_VELOCITY = 1000.0; // RPM
+    private static final double INTAKE_VELOCITY = 1200.0; // RPM (slightly higher than shooting)
     private static final int MAX_CURRENT = 40; // Amps
     private static final double kP = 0.005;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.000175;
+    private static final double SHOOT_DURATION = 3.0; // seconds
 
     public ShooterSubsystem(int leftMotorCanId, int rightMotorCanId) {
         leftMotor = new SparkMax(leftMotorCanId, MotorType.kBrushless);
@@ -82,20 +98,64 @@ public class ShooterSubsystem extends SubsystemBase {
         );
 
         // Initialize motors stopped
-        stop();
+        stopMotors();
         
-        System.out.println("Shooter subsystem initialized");
+        System.out.println("Shooter subsystem initialized in " + currentState + " state");
     }
 
-    public void shoot() {
-        System.out.println("Setting shooter velocity to " + SHOOT_VELOCITY + " RPM");
-        closedLoopController.setReference(SHOOT_VELOCITY, ControlType.kVelocity);
+    /**
+     * Prepare the shooter to intake a coral
+     */
+    public void prepareForIntake() {
+        if (currentState == ShooterState.NO_CORAL) {
+            System.out.println("Preparing shooter for intake");
+            setMotorVelocity(INTAKE_VELOCITY);
+            currentState = ShooterState.READY_TO_INTAKE;
+            stateTimer.reset();
+            stateTimer.start();
+        }
     }
 
-    public void stop() {
+    /**
+     * Shoot the coral if one is inside the shooter
+     */
+    public void shootCoral() {
+        if (currentState == ShooterState.CORAL_INSIDE) {
+            System.out.println("Shooting coral");
+            setMotorVelocity(SHOOTING_VELOCITY);
+            currentState = ShooterState.SHOOT_CORAL;
+            stateTimer.reset();
+            stateTimer.start();
+        } else {
+            System.out.println("Cannot shoot - no coral inside shooter");
+        }
+    }
+
+    /**
+     * Emergency stop for the shooter
+     */
+    public void emergencyStop() {
+        stopMotors();
+        currentState = ShooterState.NO_CORAL;
+        System.out.println("Emergency stop triggered - shooter reset to NO_CORAL state");
+    }
+
+    /**
+     * Set the motor velocity
+     * @param velocity Target velocity in RPM
+     */
+    private void setMotorVelocity(double velocity) {
+        System.out.println("Setting shooter velocity to " + velocity + " RPM");
+        closedLoopController.setReference(velocity, ControlType.kVelocity);
+    }
+
+    /**
+     * Stop the shooter motors
+     */
+    private void stopMotors() {
         System.out.println("Stopping shooter motors");
         leftMotor.stopMotor();
-        // rightMotor.stopMotor();
+        // Right motor follows left motor, so no need to stop it separately
     }
 
     /**
@@ -113,7 +173,7 @@ public class ShooterSubsystem extends SubsystemBase {
         // If we detect a sudden increase in proximity, a game piece likely entered
         if (isClose && lastProximity <= PROXIMITY_THRESHOLD) {
             var detectedColor = colorSensor.getColor();
-            System.out.println(String.format("Game piece detected! Color: R=%.2f, G=%.2f, B=%.2f, Proximity=%d",
+            System.out.println(String.format("Coral detected! Color: R=%.2f, G=%.2f, B=%.2f, Proximity=%d",
                 detectedColor.red, detectedColor.green, detectedColor.blue, proximity));
         }
         
@@ -134,30 +194,56 @@ public class ShooterSubsystem extends SubsystemBase {
         boolean hasExited = lastProximity > PROXIMITY_THRESHOLD && proximity <= PROXIMITY_THRESHOLD;
         
         if (hasExited) {
-            System.out.println("Game piece has exited the shooter");
+            System.out.println("Coral has exited the shooter");
         }
         
         lastProximity = proximity;
         return hasExited;
     }
 
+    /**
+     * Get the current state of the shooter
+     * @return Current shooter state
+     */
+    public ShooterState getState() {
+        return currentState;
+    }
+
     @Override
     public void periodic() {
-        // Right motor runs at opposite speed of left motor
-        //rightMotor.set(-leftMotor.get());
+        // Handle state transitions based on current state
+        switch (currentState) {
+            case READY_TO_INTAKE:
+                // Check if coral has entered shooter
+                if (hasGamePieceEntered() || stateTimer.get() > INTAKE_TIMEOUT) {
+                    System.out.println("Coral detected or timeout reached - stopping motors");
+                    stopMotors();
+                    currentState = ShooterState.CORAL_INSIDE;
+                    stateTimer.stop();
+                }
+                break;
+                
+            case SHOOT_CORAL:
+                // Check if shooting time is complete
+                if (stateTimer.get() >= SHOOT_DURATION) {
+                    System.out.println("Shooting complete - stopping motors");
+                    stopMotors();
+                    currentState = ShooterState.NO_CORAL;
+                    stateTimer.stop();
+                }
+                break;
+                
+            case CORAL_INSIDE:
+                // Just waiting for shoot command
+                break;
+                
+            case NO_CORAL:
+                // Just waiting for prepare command
+                break;
+        }
         
         // Update telemetry
         updateTelemetry();
-
-        // Log game piece status changes for debugging (only if we have a sensor)
-        if (hasColorSensor) {
-            if (hasGamePieceEntered()) {
-                System.out.println("Game piece detected entering shooter");
-            }
-            if (hasGamePieceExited()) {
-                System.out.println("Game piece detected exiting shooter");
-            }
-        }
     }
 
     private void updateTelemetry() {
@@ -173,6 +259,10 @@ public class ShooterSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Shooter/Right/Voltage", rightMotor.getBusVoltage());
         SmartDashboard.putNumber("Shooter/Right/Speed", rightMotor.get());
 
+        // State telemetry
+        SmartDashboard.putString("Shooter/State", currentState.toString());
+        SmartDashboard.putNumber("Shooter/StateTimer", stateTimer.get());
+
         // Color sensor telemetry (only if sensor is present)
         if (hasColorSensor) {
             var color = colorSensor.getColor();
@@ -182,7 +272,6 @@ public class ShooterSubsystem extends SubsystemBase {
             SmartDashboard.putNumber("Shooter/Sensor/Blue", color.blue);
             SmartDashboard.putNumber("Shooter/Sensor/Proximity", proximity);
         }
-        SmartDashboard.putBoolean("Shooter/GamePiecePresent", hasGamePieceEntered());
-        SmartDashboard.putBoolean("Shooter/GamePieceExited", hasGamePieceExited());
+        SmartDashboard.putBoolean("Shooter/CoralPresent", currentState == ShooterState.CORAL_INSIDE);
     }
 }
