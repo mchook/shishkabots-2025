@@ -35,14 +35,14 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double TOLERANCE = 0.5;
 
     // Elevator Position Constants (in encoder units)
-    private static final double BOTTOM_THRESHOLD = 5.0;
+    private static final double BOTTOM_THRESHOLD = -5.0;
     private static final double TOP_THRESHOLD = 40.0;  // Adjust based on actual max height
     private static final double LEVEL_1_HEIGHT = 10.0;  // Ground/Bottom level
     private static final double LEVEL_2_HEIGHT = 20.0;  // Mid level
     private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
 
     // PID Constants - Tune these values during testing
-    private static final double kP = 0.7;
+    private static final double kP = 0.02;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.0;
@@ -213,7 +213,7 @@ public class ElevatorSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         // Manually synchronize the secondary motor with the primary
-        secondaryElevatorMotor.set(primaryElevatorMotor.get());
+       // secondaryElevatorMotor.set(primaryElevatorMotor.get());
         
         // Safety checks - stop if either limit switch is triggered OR position exceeds thresholds
         if (isAtTop() || getCurrentPosition() > TOP_THRESHOLD) {

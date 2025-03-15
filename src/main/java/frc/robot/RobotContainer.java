@@ -92,7 +92,7 @@ public class RobotContainer {
     // Xbox Controller Bindings
     if (useXboxController) {
       new JoystickButton(xboxController, XboxController.Button.kA.value)
-          .onTrue(new PrepareShooterCommand(shooterSubsystem));
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
       new JoystickButton(xboxController, XboxController.Button.kB.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
       new JoystickButton(xboxController, XboxController.Button.kY.value)
