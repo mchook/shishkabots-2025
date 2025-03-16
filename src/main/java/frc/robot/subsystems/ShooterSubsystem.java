@@ -1,10 +1,8 @@
 package frc.robot.subsystems;
 
-import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
@@ -27,7 +25,6 @@ public class ShooterSubsystem extends SubsystemBase {
 
     private final SparkMax leftMotor;
     private final SparkMax rightMotor;
-    private final SparkClosedLoopController closedLoopController;
     
     // Color sensor for game piece detection
     private ColorSensorV3 colorSensor;
@@ -41,19 +38,21 @@ public class ShooterSubsystem extends SubsystemBase {
     private static final double INTAKE_TIMEOUT = 0.5; // seconds to wait for coral to be fully inside
 
     // Motor configuration constants
-    private static final double SHOOTING_VELOCITY = 1000.0; // RPM
-    private static final double INTAKE_VELOCITY = 1200.0; // RPM (slightly higher than shooting)
+    private static final double SHOOTING_POWER = 0.7; // 70% power for shooting
+    private static final double INTAKE_POWER = 0.8;   // 80% power for intake
     private static final int MAX_CURRENT = 40; // Amps
+    
+    // Keep these for reference but they're not used with open-loop control
     private static final double kP = 0.005;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.000175;
+    
     private static final double SHOOT_DURATION = 3.0; // seconds
 
     public ShooterSubsystem(int leftMotorCanId, int rightMotorCanId) {
         leftMotor = new SparkMax(leftMotorCanId, MotorType.kBrushless);
         rightMotor = new SparkMax(rightMotorCanId, MotorType.kBrushless);
-        closedLoopController = leftMotor.getClosedLoopController();
 
         // Try to initialize color sensor on the I2C port
         try {
@@ -69,8 +68,10 @@ public class ShooterSubsystem extends SubsystemBase {
         SparkMaxConfig leftConfig = new SparkMaxConfig();
         leftConfig
             .idleMode(IdleMode.kCoast)  // Coast mode for less wear on the motors
-            .smartCurrentLimit(MAX_CURRENT);
+            .smartCurrentLimit(MAX_CURRENT)
+            .openLoopRampRate(0.2);     // Add ramp rate to smooth acceleration
         
+        // Still configure PID in case we need it later, but we're not using it now
         leftConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
             .pid(kP, kI, kD)
@@ -89,7 +90,8 @@ public class ShooterSubsystem extends SubsystemBase {
             .follow(leftMotor)
             .inverted(true)
             .idleMode(IdleMode.kCoast)
-            .smartCurrentLimit(MAX_CURRENT);
+            .smartCurrentLimit(MAX_CURRENT)
+            .openLoopRampRate(0.2);     // Add ramp rate to smooth acceleration
             
         rightMotor.configure(
             rightConfig,
@@ -109,7 +111,7 @@ public class ShooterSubsystem extends SubsystemBase {
     public void prepareForIntake() {
         if (currentState == ShooterState.NO_CORAL) {
             System.out.println("Preparing shooter for intake");
-            setMotorVelocity(INTAKE_VELOCITY);
+            setMotorPower(INTAKE_POWER);
             currentState = ShooterState.READY_TO_INTAKE;
             stateTimer.reset();
             stateTimer.start();
@@ -122,7 +124,7 @@ public class ShooterSubsystem extends SubsystemBase {
     public void shootCoral() {
         if (currentState == ShooterState.CORAL_INSIDE) {
             System.out.println("Shooting coral");
-            setMotorVelocity(SHOOTING_VELOCITY);
+            setMotorPower(SHOOTING_POWER);
             currentState = ShooterState.SHOOT_CORAL;
             stateTimer.reset();
             stateTimer.start();
@@ -141,12 +143,13 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     /**
-     * Set the motor velocity
-     * @param velocity Target velocity in RPM
+     * Set the motor power using open-loop control
+     * @param percentOutput Target percentage output (-1.0 to 1.0)
      */
-    private void setMotorVelocity(double velocity) {
-        System.out.println("Setting shooter velocity to " + velocity + " RPM");
-        closedLoopController.setReference(velocity, ControlType.kVelocity);
+    private void setMotorPower(double percentOutput) {
+        System.out.println("Setting shooter power to " + percentOutput);
+        leftMotor.set(percentOutput);
+        // Right motor follows left motor automatically
     }
 
     /**
@@ -251,17 +254,22 @@ public class ShooterSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Shooter/Left/Velocity", leftMotor.getEncoder().getVelocity());
         SmartDashboard.putNumber("Shooter/Left/Current", leftMotor.getOutputCurrent());
         SmartDashboard.putNumber("Shooter/Left/Voltage", leftMotor.getBusVoltage());
-        SmartDashboard.putNumber("Shooter/Left/Speed", leftMotor.get());
+        SmartDashboard.putNumber("Shooter/Left/Power", leftMotor.get());
         
         // Right motor telemetry
         SmartDashboard.putNumber("Shooter/Right/Velocity", rightMotor.getEncoder().getVelocity());
         SmartDashboard.putNumber("Shooter/Right/Current", rightMotor.getOutputCurrent());
         SmartDashboard.putNumber("Shooter/Right/Voltage", rightMotor.getBusVoltage());
-        SmartDashboard.putNumber("Shooter/Right/Speed", rightMotor.get());
+        SmartDashboard.putNumber("Shooter/Right/Power", rightMotor.get());
 
         // State telemetry
         SmartDashboard.putString("Shooter/State", currentState.toString());
         SmartDashboard.putNumber("Shooter/StateTimer", stateTimer.get());
+        
+        // Add power output telemetry
+        SmartDashboard.putNumber("Shooter/TargetPower", 
+            currentState == ShooterState.SHOOT_CORAL ? SHOOTING_POWER : 
+            currentState == ShooterState.READY_TO_INTAKE ? INTAKE_POWER : 0);
 
         // Color sensor telemetry (only if sensor is present)
         if (hasColorSensor) {
