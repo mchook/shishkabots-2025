@@ -14,7 +14,9 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.filter.LinearFilter;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import edu.wpi.first.wpilibj.Timer;
 
 public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMax primaryElevatorMotor;
@@ -47,9 +49,20 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double kD = 0.0;
     private static final double kFF = 0.0;
 
+    // Torque mode constants
+    private static final double ELEVATOR_TORQUE = 0.4; // Initial torque for movement (0-1)
+    private static final double TORQUE_TIMEOUT = 0.3; // Time in seconds to apply torque before switching to PID
+    private static final double POSITION_ERROR_THRESHOLD = 2.0; // Error threshold to switch to torque mode
+    
     private static final int MAX_CURRENT = 40;
+    
     // Position Control
     private double targetPosition = 0.0;
+    private boolean inTorqueMode = false;
+    private Timer torqueModeTimer = new Timer();
+    
+    // Error filter for smoother transitions
+    private LinearFilter errorFilter;
 
     // Periodic counter for status updates
     private int periodicCounter = 0;
@@ -73,6 +86,9 @@ public class ElevatorSubsystem extends SubsystemBase {
         // Get encoder and controller from primary motor
         encoder = primaryElevatorMotor.getEncoder();
         closedLoopController = primaryElevatorMotor.getClosedLoopController();
+
+        // Initialize error filter (single pole IIR filter with 0.1 time constant)
+        errorFilter = LinearFilter.singlePoleIIR(0.1, 0.02);
 
         // Configure the primary motor with PID
         SparkMaxConfig primaryConfig = new SparkMaxConfig();
@@ -133,8 +149,50 @@ public class ElevatorSubsystem extends SubsystemBase {
         targetPosition = position;
         System.out.println("Setting elevator position to " + position + " (current: " + getCurrentPosition() + ")");
         
-        // Use the PID controller to move to the position
-        closedLoopController.setReference(position, ControlType.kPosition);
+        // Calculate error to determine if we need torque mode
+        double error = Math.abs(targetPosition - getCurrentPosition());
+        
+        if (error > POSITION_ERROR_THRESHOLD) {
+            // If error is large, use torque mode for initial movement
+            enableTorqueMode();
+        } else {
+            // For small adjustments, just use PID
+            closedLoopController.setReference(position, ControlType.kPosition);
+        }
+    }
+    
+    /**
+     * Enable torque mode for initial movement
+     */
+    private void enableTorqueMode() {
+        inTorqueMode = true;
+        torqueModeTimer.reset();
+        torqueModeTimer.start();
+        
+        // Determine direction based on error
+        double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
+        
+        // Apply torque in the correct direction
+        double torqueOutput = ELEVATOR_TORQUE * direction;
+        
+        // Set both motors to the same torque output
+        primaryElevatorMotor.set(torqueOutput);
+        secondaryElevatorMotor.set(torqueOutput);
+        
+        System.out.println("Enabling torque mode with output: " + torqueOutput);
+    }
+    
+    /**
+     * Disable torque mode and switch to PID control
+     */
+    private void disableTorqueMode() {
+        inTorqueMode = false;
+        torqueModeTimer.stop();
+        
+        // Switch to PID control
+        closedLoopController.setReference(targetPosition, ControlType.kPosition);
+        
+        System.out.println("Switching to PID control");
     }
     
     public double getCurrentPosition() {
@@ -161,6 +219,8 @@ public class ElevatorSubsystem extends SubsystemBase {
         System.out.println("***** Stopping elevator at position: " + getCurrentPosition());
         primaryElevatorMotor.stopMotor();
         secondaryElevatorMotor.stopMotor();  // Stop both motors
+        inTorqueMode = false;
+        torqueModeTimer.stop();
     }
 
     /**
@@ -198,6 +258,14 @@ public class ElevatorSubsystem extends SubsystemBase {
             return 3;
         }
     }
+    
+    /**
+     * Get the filtered error between current and target position
+     */
+    private double getFilteredError() {
+        double error = targetPosition - getCurrentPosition();
+        return errorFilter.calculate(error);
+    }
 
     @Override
     public void periodic() {
@@ -216,11 +284,23 @@ public class ElevatorSubsystem extends SubsystemBase {
             }
         }
         
+        // Handle torque mode transition
+        if (inTorqueMode) {
+            // Check if we should exit torque mode based on timer
+            if (torqueModeTimer.get() >= TORQUE_TIMEOUT) {
+                disableTorqueMode();
+            }
+            // Alternatively, exit torque mode if we're close to the target
+            else if (Math.abs(getFilteredError()) < TOLERANCE * 2) {
+                disableTorqueMode();
+            }
+        }
+        
         // Print periodic status every 50 calls (about once per second)
         if (periodicCounter++ % 50 == 0) {
-            System.out.println(String.format("Elevator Status - Pos: %.2f, Target: %.2f, P1 Speed: %.2f, P2 Speed: %.2f",
+            System.out.println(String.format("Elevator Status - Pos: %.2f, Target: %.2f, P1 Speed: %.2f, P2 Speed: %.2f, TorqueMode: %b",
                 getCurrentPosition(), targetPosition, 
-                primaryElevatorMotor.get(), secondaryElevatorMotor.get()));
+                primaryElevatorMotor.get(), secondaryElevatorMotor.get(), inTorqueMode));
         }
         
         updateTelemetry();
@@ -245,6 +325,8 @@ public class ElevatorSubsystem extends SubsystemBase {
         SmartDashboard.putBoolean("Elevator/AtTop", isAtTop());
         SmartDashboard.putBoolean("Elevator/AtBottom", isAtBottom());
         SmartDashboard.putBoolean("Elevator/AtTarget", atTargetPosition());
+        SmartDashboard.putBoolean("Elevator/TorqueMode", inTorqueMode);
+        SmartDashboard.putNumber("Elevator/FilteredError", getFilteredError());
         
         SmartDashboard.putNumber("Elevator/Primary/Current", primaryElevatorMotor.getOutputCurrent());
         SmartDashboard.putNumber("Elevator/Primary/Voltage", primaryElevatorMotor.getBusVoltage());
