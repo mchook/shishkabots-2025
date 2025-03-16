@@ -50,8 +50,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double kFF = 0.0;
 
     // Torque mode constants
-    private static final double ELEVATOR_TORQUE = 0.4; // Initial torque for movement (0-1)
-    private static final double TORQUE_TIMEOUT = 0.3; // Time in seconds to apply torque before switching to PID
+    private static final double ELEVATOR_TORQUE = 0.1; // Initial torque for movement (0-1)
+    private static final double TORQUE_TIMEOUT = 0.8; // Time in seconds to apply torque before switching to PID
     private static final double POSITION_ERROR_THRESHOLD = 2.0; // Error threshold to switch to torque mode
     
     private static final int MAX_CURRENT = 40;
@@ -286,6 +286,17 @@ public class ElevatorSubsystem extends SubsystemBase {
         
         // Handle torque mode transition
         if (inTorqueMode) {
+            // Debug information for torque mode
+            double currentPosition = getCurrentPosition();
+            double currentError = targetPosition - currentPosition;
+            double filteredError = getFilteredError();
+            double torqueTime = torqueModeTimer.get();
+            double motorOutput = primaryElevatorMotor.get();
+            
+            System.out.println(String.format(
+                "TORQUE_MODE_DEBUG - Time: %.3fs, Pos: %.2f, Target: %.2f, Error: %.2f, Filtered: %.2f, Output: %.2f",
+                torqueTime, currentPosition, targetPosition, currentError, filteredError, motorOutput));
+            
             // Check if we should exit torque mode based on timer
             if (torqueModeTimer.get() >= TORQUE_TIMEOUT) {
                 disableTorqueMode();
