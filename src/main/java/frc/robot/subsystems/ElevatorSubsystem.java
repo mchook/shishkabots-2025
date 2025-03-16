@@ -42,7 +42,7 @@ public class ElevatorSubsystem extends SubsystemBase {
     
     // Encoder to height mapping
     private static final double[] ENCODER_VALUES = {0.0, 9.66, 19.66, 30.0};
-    private static final double[] ACTUAL_HEIGHTS = {0.0, 12.3, 35.0, 63.0}; // in inches
+    private static final double[] ACTUAL_HEIGHTS = {0.0, 16.4, 34.7, 63.0}; // in inches
     
     // Predefined heights in inches
     private static final double LEVEL_1_HEIGHT_INCHES = 12.3;  // Ground/Bottom level
@@ -50,7 +50,7 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double LEVEL_3_HEIGHT_INCHES = 63.0;  // Top level
 
     // PID Constants - Tune these values during testing
-    private static final double kP = 0.02;
+    private static final double kP = 0.4;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.0;
