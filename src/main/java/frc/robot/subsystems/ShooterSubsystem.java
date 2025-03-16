@@ -91,7 +91,7 @@ public class ShooterSubsystem extends SubsystemBase {
             .inverted(true)
             .idleMode(IdleMode.kCoast)
             .smartCurrentLimit(MAX_CURRENT)
-            .openLoopRampRate(0.2);     // Add ramp rate to smooth acceleration
+            .openLoopRampRate(0.1);     // Add ramp rate to smooth acceleration
             
         rightMotor.configure(
             rightConfig,
@@ -112,7 +112,6 @@ public class ShooterSubsystem extends SubsystemBase {
         if (currentState == ShooterState.NO_CORAL) {
             System.out.println("Preparing shooter for intake");
             setMotorPower(INTAKE_POWER);
-            rightMotor.set(INTAKE_POWER);
             currentState = ShooterState.READY_TO_INTAKE;
             stateTimer.reset();
             stateTimer.start();
@@ -126,7 +125,6 @@ public class ShooterSubsystem extends SubsystemBase {
         if (currentState == ShooterState.CORAL_INSIDE) {
             System.out.println("Shooting coral");
             setMotorPower(SHOOTING_POWER);
-            rightMotor.set(SHOOTING_POWER + 0.2);
             currentState = ShooterState.SHOOT_CORAL;
             stateTimer.reset();
             stateTimer.start();
@@ -135,6 +133,17 @@ public class ShooterSubsystem extends SubsystemBase {
         }
     }
 
+    public void shootBottomLevelCoral() {
+        if (currentState == ShooterState.CORAL_INSIDE) {
+            System.out.println("Shooting coral to bottom level");
+            leftMotor.set(SHOOTING_POWER);
+            rightMotor.set(SHOOTING_POWER + 0.175);
+            stateTimer.reset();
+            stateTimer.start();
+        } else {
+            System.out.println("Cannot shoot - no coral inside shooter");
+        }
+    }
     /**
      * Emergency stop for the shooter
      */
@@ -151,6 +160,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private void setMotorPower(double percentOutput) {
         System.out.println("Setting shooter power to " + percentOutput);
         leftMotor.set(percentOutput);
+        rightMotor.set(percentOutput);
         // Right motor follows left motor automatically
     }
 

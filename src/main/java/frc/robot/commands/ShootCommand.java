@@ -20,7 +20,7 @@ public class ShootCommand extends SequentialCommandGroup {
     public ShootCommand(ShooterSubsystem shooter, ElevatorSubsystem elevator) {
         addCommands(
             // First shoot the coral
-            new ShootCoralCommand(shooter)
+            new ShootCoralCommand(shooter, elevator)
             
             // Then lower the elevator to level 1 (intake position)
             //new ElevatorTestCommand(elevator, 1)
@@ -32,15 +32,21 @@ public class ShootCommand extends SequentialCommandGroup {
      */
     private static class ShootCoralCommand extends Command {
         private final ShooterSubsystem shooter;
+        private final ElevatorSubsystem elevator;
 
-        public ShootCoralCommand(ShooterSubsystem shooter) {
+        public ShootCoralCommand(ShooterSubsystem shooter, ElevatorSubsystem elevator) {
             this.shooter = shooter;
+            this.elevator = elevator;
             addRequirements(shooter);
         }
 
         @Override
         public void initialize() {
             System.out.println("Starting shooter motors");
+            // have to create a elevator level for very bottom in order for this to run
+            /* if (elevator.getCurrentLevel() == 0) {
+                shooter.shootBottomLevelCoral();
+            } */
             shooter.shootCoral();
         }
 
