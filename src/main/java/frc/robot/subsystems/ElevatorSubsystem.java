@@ -42,7 +42,7 @@ public class ElevatorSubsystem extends SubsystemBase {
     
     // Encoder to height mapping
     private static final double[] ENCODER_VALUES = {0.0, 9.66, 19.66, 30.0};
-    private static final double[] ACTUAL_HEIGHTS = {0.0, 16.4, 34.7, 63.0}; // in inches
+    private static final double[] ACTUAL_HEIGHTS = {0.0, 12.3, 34.7, 63.0}; // in inches
     
     // Predefined heights in inches
     private static final double LEVEL_1_HEIGHT_INCHES = 12.3;  // First level
