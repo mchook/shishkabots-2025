@@ -40,14 +40,10 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double BOTTOM_THRESHOLD = -5.0;
     private static final double TOP_THRESHOLD = 40.0;  // Adjust based on actual max height
     
-    // Encoder to height mapping
-    private static final double[] ENCODER_VALUES = {0.0, 9.66, 19.66, 30.0};
-    private static final double[] ACTUAL_HEIGHTS = {0.0, 12.3, 34.7, 63.0}; // in inches
-    
-    // Predefined heights in inches
-    private static final double LEVEL_1_HEIGHT_INCHES = 12.3;  // First level
-    private static final double LEVEL_2_HEIGHT_INCHES = 34.7;  // Mid level
-    private static final double LEVEL_3_HEIGHT_INCHES = 63.0;  // Top level
+    // Predefined heights in encoder units
+    private static final double LEVEL_1_HEIGHT = 9.66;  // First level
+    private static final double LEVEL_2_HEIGHT = 19.66;  // Mid level
+    private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
 
     // PID Constants - Tune these values during testing
     private static final double kP = 0.5;
@@ -214,26 +210,48 @@ public class ElevatorSubsystem extends SubsystemBase {
         System.out.println("Switching to PID control");
     }
     
+    /**
+     * Get the current position of the elevator in encoder units
+     * @return Current position
+     */
     public double getCurrentPosition() {
         return encoder.getPosition();
     }
     
+    /**
+     * Check if the elevator is at the target position
+     * @return True if at target position
+     */
     public boolean atTargetPosition() {
         return Math.abs(getCurrentPosition() - targetPosition) < TOLERANCE;
     }
     
+    /**
+     * Check if the elevator is at the top limit
+     * @return True if at top limit
+     */
     public boolean isAtTop() {
         return !topLimitSwitch.get();  // Limit switches are typically active LOW
     }
     
+    /**
+     * Check if the elevator is at the bottom limit
+     * @return True if at bottom limit
+     */
     public boolean isAtBottom() {
         return !bottomLimitSwitch.get();  // Limit switches are typically active LOW
     }
     
+    /**
+     * Reset the encoder position to zero
+     */
     public void resetEncoder() {
         encoder.setPosition(0);
     }
 
+    /**
+     * Stop the elevator motors
+     */
     public void stop() {
         System.out.println("***** Stopping elevator at position: " + getCurrentPosition());
         primaryElevatorMotor.stopMotor();
@@ -250,13 +268,13 @@ public class ElevatorSubsystem extends SubsystemBase {
         System.out.println("Moving elevator to level " + level);
         switch (level) {
             case 1:
-                setTargetHeightInches(LEVEL_1_HEIGHT_INCHES);
+                setTargetPosition(LEVEL_1_HEIGHT);
                 break;
             case 2:
-                setTargetHeightInches(LEVEL_2_HEIGHT_INCHES);
+                setTargetPosition(LEVEL_2_HEIGHT);
                 break;
             case 3:
-                setTargetHeightInches(LEVEL_3_HEIGHT_INCHES);
+                setTargetPosition(LEVEL_3_HEIGHT);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid level: " + level);
@@ -268,79 +286,17 @@ public class ElevatorSubsystem extends SubsystemBase {
      * Returns 0 if between levels
      */
     public int getCurrentLevel() {
-        double heightInches = getCurrentHeightInches();
+        double position = getCurrentPosition();
         
-        if (Math.abs(heightInches - LEVEL_1_HEIGHT_INCHES) < 3.0) {
+        if (Math.abs(position - LEVEL_1_HEIGHT) < TOLERANCE) {
             return 1;
-        } else if (Math.abs(heightInches - LEVEL_2_HEIGHT_INCHES) < 3.0) {
+        } else if (Math.abs(position - LEVEL_2_HEIGHT) < TOLERANCE) {
             return 2;
-        } else if (Math.abs(heightInches - LEVEL_3_HEIGHT_INCHES) < 3.0) {
+        } else if (Math.abs(position - LEVEL_3_HEIGHT) < TOLERANCE) {
             return 3;
         } else {
             return 0; // Between levels
         }
-    }
-    
-    /**
-     * Convert actual height in inches to encoder units
-     * @param heightInches Height in inches
-     * @return Equivalent encoder value
-     */
-    public double inchesToEncoder(double heightInches) {
-        // Ensure height is within bounds
-        heightInches = Math.max(Math.min(heightInches, ACTUAL_HEIGHTS[ACTUAL_HEIGHTS.length - 1]), ACTUAL_HEIGHTS[0]);
-        
-        // Find the appropriate segment for interpolation
-        int i = 0;
-        while (i < ACTUAL_HEIGHTS.length - 1 && heightInches > ACTUAL_HEIGHTS[i + 1]) {
-            i++;
-        }
-        
-        // Linear interpolation
-        double ratio = (heightInches - ACTUAL_HEIGHTS[i]) / (ACTUAL_HEIGHTS[i + 1] - ACTUAL_HEIGHTS[i]);
-        double encoderValue = ENCODER_VALUES[i] + ratio * (ENCODER_VALUES[i + 1] - ENCODER_VALUES[i]);
-        
-        System.out.println("Converting " + heightInches + " inches to encoder value: " + encoderValue);
-        return encoderValue;
-    }
-    
-    /**
-     * Convert encoder units to actual height in inches
-     * @param encoderValue Encoder value
-     * @return Equivalent height in inches
-     */
-    public double encoderToInches(double encoderValue) {
-        // Ensure encoder value is within bounds
-        encoderValue = Math.max(Math.min(encoderValue, ENCODER_VALUES[ENCODER_VALUES.length - 1]), ENCODER_VALUES[0]);
-        
-        // Find the appropriate segment for interpolation
-        int i = 0;
-        while (i < ENCODER_VALUES.length - 1 && encoderValue > ENCODER_VALUES[i + 1]) {
-            i++;
-        }
-        
-        // Linear interpolation
-        double ratio = (encoderValue - ENCODER_VALUES[i]) / (ENCODER_VALUES[i + 1] - ENCODER_VALUES[i]);
-        double heightInches = ACTUAL_HEIGHTS[i] + ratio * (ACTUAL_HEIGHTS[i + 1] - ACTUAL_HEIGHTS[i]);
-        
-        return heightInches;
-    }
-    
-    /**
-     * Set the target position for the elevator using actual height in inches
-     * @param heightInches Target height in inches
-     */
-    public void setTargetHeightInches(double heightInches) {
-        double encoderValue = inchesToEncoder(heightInches);
-        setTargetPosition(encoderValue);
-    }
-
-    /**
-     * Get the current height in inches
-     * @return Current height in inches
-     */
-    public double getCurrentHeightInches() {
-        return encoderToInches(getCurrentPosition());
     }
     
     /**
@@ -416,8 +372,6 @@ public class ElevatorSubsystem extends SubsystemBase {
     private void updateTelemetry() {
         SmartDashboard.putNumber("Elevator/CurrentPosition", getCurrentPosition());
         SmartDashboard.putNumber("Elevator/TargetPosition", targetPosition);
-        SmartDashboard.putNumber("Elevator/CurrentHeightInches", getCurrentHeightInches());
-        SmartDashboard.putNumber("Elevator/TargetHeightInches", encoderToInches(targetPosition));
         SmartDashboard.putNumber("Elevator/CurrentLevel", getCurrentLevel());
         SmartDashboard.putBoolean("Elevator/AtTop", isAtTop());
         SmartDashboard.putBoolean("Elevator/AtBottom", isAtBottom());
