@@ -46,7 +46,7 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
 
     // PID Constants - Tune these values during testing
-    private static final double kP = 0.5;
+    private static final double kP = 0.6;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.0;

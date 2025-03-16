@@ -20,10 +20,10 @@ public class ShootCommand extends SequentialCommandGroup {
     public ShootCommand(ShooterSubsystem shooter, ElevatorSubsystem elevator) {
         addCommands(
             // First shoot the coral
-            new ShootCoralCommand(shooter),
+            new ShootCoralCommand(shooter)
             
             // Then lower the elevator to level 1 (intake position)
-            new ElevatorTestCommand(elevator, 1)
+            //new ElevatorTestCommand(elevator, 1)
         );
     }
     

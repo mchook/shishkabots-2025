@@ -46,7 +46,7 @@ public class RobotContainer {
   // Set which controller to use (true for Xbox, false for PS4)
   private final boolean useXboxController = true;
 
-  private static final double DEADBAND = 0.08;
+  private static final double DEADBAND = 0.1;
 
   public LimelightSubsystem getLimelightSubsystem() {
     return limelightSubsystem;
@@ -91,14 +91,16 @@ public class RobotContainer {
   private void configureBindings() {
     // Xbox Controller Bindings
     if (useXboxController) {
-      new JoystickButton(xboxController, XboxController.Button.kA.value)
+      /*new JoystickButton(xboxController, XboxController.Button.kA.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
       new JoystickButton(xboxController, XboxController.Button.kB.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
       new JoystickButton(xboxController, XboxController.Button.kY.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
       new JoystickButton(xboxController, XboxController.Button.kX.value)
-          .whileTrue(new LimelightDebugCommand(limelightSubsystem));
+          .whileTrue(new LimelightDebugCommand(limelightSubsystem));*/
+      new JoystickButton(xboxController, XboxController.Button.kX.value)
+          .onTrue(new PrepareShooterCommand(shooterSubsystem));
 
       // Shooter control - Right Bumper
       new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)

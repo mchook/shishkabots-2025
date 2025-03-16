@@ -35,20 +35,20 @@ public class ShooterSubsystem extends SubsystemBase {
     // State management
     private ShooterState currentState = ShooterState.NO_CORAL;
     private final Timer stateTimer = new Timer();
-    private static final double INTAKE_TIMEOUT = 0.5; // seconds to wait for coral to be fully inside
+    private static final double INTAKE_TIMEOUT = 1.2; // seconds to wait for coral to be fully inside
 
     // Motor configuration constants
-    private static final double SHOOTING_POWER = 0.7; // 70% power for shooting
-    private static final double INTAKE_POWER = 0.8;   // 80% power for intake
+    private static final double SHOOTING_POWER = 0.35; // 10% power for shooting
+    private static final double INTAKE_POWER = 0.45;   // 20% power for intake
     private static final int MAX_CURRENT = 40; // Amps
     
     // Keep these for reference but they're not used with open-loop control
-    private static final double kP = 0.005;
+    private static final double kP = 1.3;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.000175;
     
-    private static final double SHOOT_DURATION = 3.0; // seconds
+    private static final double SHOOT_DURATION = 2.0; // seconds
 
     public ShooterSubsystem(int leftMotorCanId, int rightMotorCanId) {
         leftMotor = new SparkMax(leftMotorCanId, MotorType.kBrushless);
@@ -68,8 +68,9 @@ public class ShooterSubsystem extends SubsystemBase {
         SparkMaxConfig leftConfig = new SparkMaxConfig();
         leftConfig
             .idleMode(IdleMode.kCoast)  // Coast mode for less wear on the motors
+            .inverted(false)
             .smartCurrentLimit(MAX_CURRENT)
-            .openLoopRampRate(0.2);     // Add ramp rate to smooth acceleration
+            .openLoopRampRate(0.1);     // Add ramp rate to smooth acceleration
         
         // Still configure PID in case we need it later, but we're not using it now
         leftConfig.closedLoop
@@ -87,7 +88,6 @@ public class ShooterSubsystem extends SubsystemBase {
         // Configure the right motor (follower)
         SparkMaxConfig rightConfig = new SparkMaxConfig();
         rightConfig
-            .follow(leftMotor)
             .inverted(true)
             .idleMode(IdleMode.kCoast)
             .smartCurrentLimit(MAX_CURRENT)
@@ -112,6 +112,7 @@ public class ShooterSubsystem extends SubsystemBase {
         if (currentState == ShooterState.NO_CORAL) {
             System.out.println("Preparing shooter for intake");
             setMotorPower(INTAKE_POWER);
+            rightMotor.set(INTAKE_POWER);
             currentState = ShooterState.READY_TO_INTAKE;
             stateTimer.reset();
             stateTimer.start();
@@ -125,6 +126,7 @@ public class ShooterSubsystem extends SubsystemBase {
         if (currentState == ShooterState.CORAL_INSIDE) {
             System.out.println("Shooting coral");
             setMotorPower(SHOOTING_POWER);
+            rightMotor.set(SHOOTING_POWER + 0.2);
             currentState = ShooterState.SHOOT_CORAL;
             stateTimer.reset();
             stateTimer.start();
@@ -158,6 +160,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private void stopMotors() {
         System.out.println("Stopping shooter motors");
         leftMotor.stopMotor();
+        rightMotor.stopMotor();
         // Right motor follows left motor, so no need to stop it separately
     }
 
