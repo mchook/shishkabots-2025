@@ -102,7 +102,7 @@ public class RobotContainer {
 
       // Shooter control - Right Bumper
       new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)
-          .onTrue(new ShootCommand(shooterSubsystem));
+          .onTrue(new ShootCommand(shooterSubsystem, elevatorSubsystem));
           
       // Emergency stop for elevator (Start button)
       new JoystickButton(xboxController, XboxController.Button.kStart.value)
@@ -119,7 +119,7 @@ public class RobotContainer {
 
       // Shooter control - R1 button
       new JoystickButton(ps4Controller, PS4Controller.Button.kR1.value)
-          .onTrue(new ShootCommand(shooterSubsystem));
+          .onTrue(new ShootCommand(shooterSubsystem, elevatorSubsystem));
           
       // Emergency stop for elevator (Options button)
       new JoystickButton(ps4Controller, PS4Controller.Button.kOptions.value)

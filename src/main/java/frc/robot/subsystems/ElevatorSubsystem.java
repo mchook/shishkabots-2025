@@ -45,9 +45,9 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double[] ACTUAL_HEIGHTS = {0.0, 16.4, 34.7, 63.0}; // in inches
     
     // Predefined heights in inches
-    private static final double LEVEL_1_HEIGHT_INCHES = 12.3;  // Ground/Bottom level
-    private static final double LEVEL_2_HEIGHT_INCHES = 35.0;  // Mid level
-    private static final double LEVEL_3_HEIGHT_INCHES = 63.0;  // Top level
+    private static final double LEVEL_1_HEIGHT_INCHES = 34;  // First level
+    private static final double LEVEL_2_HEIGHT_INCHES = 50;  // Mid level
+    private static final double LEVEL_3_HEIGHT_INCHES = 70;  // Top level
 
     // PID Constants - Tune these values during testing
     private static final double kP = 0.4;

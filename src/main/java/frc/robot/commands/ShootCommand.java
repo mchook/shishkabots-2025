@@ -1,41 +1,69 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.ElevatorSubsystem;
 
-public class ShootCommand extends Command {
-    private final ShooterSubsystem shooter;
-
-    public ShootCommand(ShooterSubsystem shooter) {
-        this.shooter = shooter;
-        addRequirements(shooter);
+/**
+ * Command to shoot a coral and then lower the elevator.
+ * This starts the shooter motors and waits until the coral is ejected,
+ * then automatically lowers the elevator to level 1 (intake position).
+ */
+public class ShootCommand extends SequentialCommandGroup {
+    
+    /**
+     * Creates a command to shoot a coral and then lower the elevator
+     * @param shooter The shooter subsystem
+     * @param elevator The elevator subsystem
+     */
+    public ShootCommand(ShooterSubsystem shooter, ElevatorSubsystem elevator) {
+        addCommands(
+            // First shoot the coral
+            new ShootCoralCommand(shooter),
+            
+            // Then lower the elevator to level 1 (intake position)
+            new ElevatorTestCommand(elevator, 1)
+        );
     }
+    
+    /**
+     * Inner command that handles just the shooting part
+     */
+    private static class ShootCoralCommand extends Command {
+        private final ShooterSubsystem shooter;
 
-    @Override
-    public void initialize() {
-        System.out.println("Starting shooter motors");
-        shooter.shootCoral();
-    }
-
-    @Override
-    public void execute() {
-        // State management is handled in the subsystem
-    }
-
-    @Override
-    public void end(boolean interrupted) {
-        if (interrupted) {
-            System.out.println("Shooter stopped after interruption");
-            shooter.emergencyStop();
-        } else {
-            System.out.println("Shooter stopped normally");
-            // No need to stop motors here as the subsystem handles this automatically
+        public ShootCoralCommand(ShooterSubsystem shooter) {
+            this.shooter = shooter;
+            addRequirements(shooter);
         }
-    }
 
-    @Override
-    public boolean isFinished() {
-        // Command is finished when the shooter returns to NO_CORAL state
-        return shooter.getState() == ShooterSubsystem.ShooterState.NO_CORAL;
+        @Override
+        public void initialize() {
+            System.out.println("Starting shooter motors");
+            shooter.shootCoral();
+        }
+
+        @Override
+        public void execute() {
+            // State management is handled in the subsystem
+        }
+
+        @Override
+        public void end(boolean interrupted) {
+            if (interrupted) {
+                System.out.println("Shooter stopped after interruption");
+                shooter.emergencyStop();
+            } else {
+                System.out.println("Shooter stopped normally");
+                // No need to stop motors here as the subsystem handles this automatically
+            }
+        }
+
+        @Override
+        public boolean isFinished() {
+            // Command is finished when the shooter returns to NO_CORAL state
+            return shooter.getState() == ShooterSubsystem.ShooterState.NO_CORAL;
+        }
     }
 }
