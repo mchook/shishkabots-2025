@@ -39,9 +39,15 @@ public class ElevatorSubsystem extends SubsystemBase {
     // Elevator Position Constants (in encoder units)
     private static final double BOTTOM_THRESHOLD = -5.0;
     private static final double TOP_THRESHOLD = 40.0;  // Adjust based on actual max height
-    private static final double LEVEL_1_HEIGHT = 10.0;  // Ground/Bottom level
-    private static final double LEVEL_2_HEIGHT = 20.0;  // Mid level
-    private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
+    
+    // Encoder to height mapping
+    private static final double[] ENCODER_VALUES = {0.0, 9.66, 19.66, 30.0};
+    private static final double[] ACTUAL_HEIGHTS = {0.0, 12.3, 35.0, 63.0}; // in inches
+    
+    // Predefined heights in inches
+    private static final double LEVEL_1_HEIGHT_INCHES = 12.3;  // Ground/Bottom level
+    private static final double LEVEL_2_HEIGHT_INCHES = 35.0;  // Mid level
+    private static final double LEVEL_3_HEIGHT_INCHES = 63.0;  // Top level
 
     // PID Constants - Tune these values during testing
     private static final double kP = 0.02;
@@ -50,9 +56,10 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double kFF = 0.0;
 
     // Motion profile constants - controls speed in closed-loop mode
+    // These are kept for future reference but not currently used
     private static final double MAX_VELOCITY = 20.0; // Maximum velocity in encoder units per second
     private static final double MAX_ACCELERATION = 40.0; // Maximum acceleration in encoder units per second squared
-    private static final boolean USE_MOTION_PROFILE = true; // Set to true to use motion profiling
+    private static final boolean USE_MOTION_PROFILE = false; // Set to true to use motion profiling
 
     // Torque mode constants
     private static final double ELEVATOR_TORQUE = 0.1; // Initial torque for movement (0-1)
@@ -109,10 +116,9 @@ public class ElevatorSubsystem extends SubsystemBase {
             
         // Configure motion profiling if enabled
         if (USE_MOTION_PROFILE) {
+            // We'll use standard PID with higher output limits instead of SmartMotion
             primaryConfig.closedLoop
-                .maxMotion
-                .maxVelocity(MAX_VELOCITY)
-                .maxAcceleration(MAX_ACCELERATION);
+                .outputRange(-1.0, 1.0); // Full range for faster movement
         }
             
         primaryElevatorMotor.configure(
@@ -170,11 +176,7 @@ public class ElevatorSubsystem extends SubsystemBase {
             enableTorqueMode();
         } else {
             // For small adjustments, just use PID
-            if (USE_MOTION_PROFILE) {
-                closedLoopController.setReference(position, ControlType.kMAXMotionPositionControl);
-            } else {
-                closedLoopController.setReference(position, ControlType.kPosition);
-            }
+            closedLoopController.setReference(position, ControlType.kPosition);
         }
     }
     
@@ -207,13 +209,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         torqueModeTimer.stop();
         
         // Switch to PID control
-        if (USE_MOTION_PROFILE) {
-            // Use Smart Motion for faster, smoother movement
-            closedLoopController.setReference(targetPosition, ControlType.kMAXMotionPositionControl);
-        } else {
-            // Use standard position control
-            closedLoopController.setReference(targetPosition, ControlType.kPosition);
-        }
+        closedLoopController.setReference(targetPosition, ControlType.kPosition);
         
         System.out.println("Switching to PID control");
     }
@@ -254,13 +250,13 @@ public class ElevatorSubsystem extends SubsystemBase {
         System.out.println("Moving elevator to level " + level);
         switch (level) {
             case 1:
-                setTargetPosition(LEVEL_1_HEIGHT);
+                setTargetHeightInches(LEVEL_1_HEIGHT_INCHES);
                 break;
             case 2:
-                setTargetPosition(LEVEL_2_HEIGHT);
+                setTargetHeightInches(LEVEL_2_HEIGHT_INCHES);
                 break;
             case 3:
-                setTargetPosition(LEVEL_3_HEIGHT);
+                setTargetHeightInches(LEVEL_3_HEIGHT_INCHES);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid level: " + level);
@@ -272,14 +268,79 @@ public class ElevatorSubsystem extends SubsystemBase {
      * Returns 0 if between levels
      */
     public int getCurrentLevel() {
-        double position = getCurrentPosition();
-        if (position < LEVEL_1_HEIGHT + TOLERANCE) {
+        double heightInches = getCurrentHeightInches();
+        
+        if (Math.abs(heightInches - LEVEL_1_HEIGHT_INCHES) < 3.0) {
             return 1;
-        } else if (position < LEVEL_2_HEIGHT + TOLERANCE) {
+        } else if (Math.abs(heightInches - LEVEL_2_HEIGHT_INCHES) < 3.0) {
             return 2;
-        } else {
+        } else if (Math.abs(heightInches - LEVEL_3_HEIGHT_INCHES) < 3.0) {
             return 3;
+        } else {
+            return 0; // Between levels
         }
+    }
+    
+    /**
+     * Convert actual height in inches to encoder units
+     * @param heightInches Height in inches
+     * @return Equivalent encoder value
+     */
+    public double inchesToEncoder(double heightInches) {
+        // Ensure height is within bounds
+        heightInches = Math.max(Math.min(heightInches, ACTUAL_HEIGHTS[ACTUAL_HEIGHTS.length - 1]), ACTUAL_HEIGHTS[0]);
+        
+        // Find the appropriate segment for interpolation
+        int i = 0;
+        while (i < ACTUAL_HEIGHTS.length - 1 && heightInches > ACTUAL_HEIGHTS[i + 1]) {
+            i++;
+        }
+        
+        // Linear interpolation
+        double ratio = (heightInches - ACTUAL_HEIGHTS[i]) / (ACTUAL_HEIGHTS[i + 1] - ACTUAL_HEIGHTS[i]);
+        double encoderValue = ENCODER_VALUES[i] + ratio * (ENCODER_VALUES[i + 1] - ENCODER_VALUES[i]);
+        
+        System.out.println("Converting " + heightInches + " inches to encoder value: " + encoderValue);
+        return encoderValue;
+    }
+    
+    /**
+     * Convert encoder units to actual height in inches
+     * @param encoderValue Encoder value
+     * @return Equivalent height in inches
+     */
+    public double encoderToInches(double encoderValue) {
+        // Ensure encoder value is within bounds
+        encoderValue = Math.max(Math.min(encoderValue, ENCODER_VALUES[ENCODER_VALUES.length - 1]), ENCODER_VALUES[0]);
+        
+        // Find the appropriate segment for interpolation
+        int i = 0;
+        while (i < ENCODER_VALUES.length - 1 && encoderValue > ENCODER_VALUES[i + 1]) {
+            i++;
+        }
+        
+        // Linear interpolation
+        double ratio = (encoderValue - ENCODER_VALUES[i]) / (ENCODER_VALUES[i + 1] - ENCODER_VALUES[i]);
+        double heightInches = ACTUAL_HEIGHTS[i] + ratio * (ACTUAL_HEIGHTS[i + 1] - ACTUAL_HEIGHTS[i]);
+        
+        return heightInches;
+    }
+    
+    /**
+     * Set the target position for the elevator using actual height in inches
+     * @param heightInches Target height in inches
+     */
+    public void setTargetHeightInches(double heightInches) {
+        double encoderValue = inchesToEncoder(heightInches);
+        setTargetPosition(encoderValue);
+    }
+
+    /**
+     * Get the current height in inches
+     * @return Current height in inches
+     */
+    public double getCurrentHeightInches() {
+        return encoderToInches(getCurrentPosition());
     }
     
     /**
@@ -355,6 +416,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     private void updateTelemetry() {
         SmartDashboard.putNumber("Elevator/CurrentPosition", getCurrentPosition());
         SmartDashboard.putNumber("Elevator/TargetPosition", targetPosition);
+        SmartDashboard.putNumber("Elevator/CurrentHeightInches", getCurrentHeightInches());
+        SmartDashboard.putNumber("Elevator/TargetHeightInches", encoderToInches(targetPosition));
         SmartDashboard.putNumber("Elevator/CurrentLevel", getCurrentLevel());
         SmartDashboard.putBoolean("Elevator/AtTop", isAtTop());
         SmartDashboard.putBoolean("Elevator/AtBottom", isAtBottom());
