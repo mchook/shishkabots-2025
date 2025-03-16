@@ -49,6 +49,11 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double kD = 0.0;
     private static final double kFF = 0.0;
 
+    // Motion profile constants - controls speed in closed-loop mode
+    private static final double MAX_VELOCITY = 20.0; // Maximum velocity in encoder units per second
+    private static final double MAX_ACCELERATION = 40.0; // Maximum acceleration in encoder units per second squared
+    private static final boolean USE_MOTION_PROFILE = true; // Set to true to use motion profiling
+
     // Torque mode constants
     private static final double ELEVATOR_TORQUE = 0.1; // Initial torque for movement (0-1)
     private static final double TORQUE_TIMEOUT = 0.8; // Time in seconds to apply torque before switching to PID
@@ -101,6 +106,14 @@ public class ElevatorSubsystem extends SubsystemBase {
             .pid(kP, kI, kD)
             .velocityFF(kFF)
             .outputRange(MIN_OUTPUT, MAX_OUTPUT);
+            
+        // Configure motion profiling if enabled
+        if (USE_MOTION_PROFILE) {
+            primaryConfig.closedLoop
+                .maxMotion
+                .maxVelocity(MAX_VELOCITY)
+                .maxAcceleration(MAX_ACCELERATION);
+        }
             
         primaryElevatorMotor.configure(
             primaryConfig,
@@ -157,7 +170,11 @@ public class ElevatorSubsystem extends SubsystemBase {
             enableTorqueMode();
         } else {
             // For small adjustments, just use PID
-            closedLoopController.setReference(position, ControlType.kPosition);
+            if (USE_MOTION_PROFILE) {
+                closedLoopController.setReference(position, ControlType.kMAXMotionPositionControl);
+            } else {
+                closedLoopController.setReference(position, ControlType.kPosition);
+            }
         }
     }
     
@@ -190,7 +207,13 @@ public class ElevatorSubsystem extends SubsystemBase {
         torqueModeTimer.stop();
         
         // Switch to PID control
-        closedLoopController.setReference(targetPosition, ControlType.kPosition);
+        if (USE_MOTION_PROFILE) {
+            // Use Smart Motion for faster, smoother movement
+            closedLoopController.setReference(targetPosition, ControlType.kMAXMotionPositionControl);
+        } else {
+            // Use standard position control
+            closedLoopController.setReference(targetPosition, ControlType.kPosition);
+        }
         
         System.out.println("Switching to PID control");
     }
