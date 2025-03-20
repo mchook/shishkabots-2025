@@ -346,11 +346,13 @@ public class ElevatorSubsystem extends SubsystemBase {
             double filteredError = getFilteredError();
             double torqueTime = torqueModeTimer.get();
             double motorOutput = primaryElevatorMotor.get();
-            double motorVelocity = encoder.getVelocity();
+            double primaryVelocity = encoder.getVelocity();
+            double secondaryVelocity = secondaryElevatorMotor.getEncoder().getVelocity();
             
             Logger.logf(
-                "TORQUE_MODE_DEBUG - Time: %.3fs, Pos: %.2f, Target: %.2f, Error: %.2f, Filtered: %.2f, Output: %.2f, Velocity: %.2f, P1 Voltage: %.2f, P2 Voltage: %.2f",
-                torqueTime, currentPosition, targetPosition, currentError, filteredError, motorOutput, motorVelocity, 
+                "TORQUE_MODE_DEBUG - Time: %.3fs, Pos: %.2f, Target: %.2f, Error: %.2f, Filtered: %.2f, Output: %.2f, P1 Vel: %.2f, P2 Vel: %.2f, P1 Voltage: %.2f, P2 Voltage: %.2f",
+                torqueTime, currentPosition, targetPosition, currentError, filteredError, motorOutput, 
+                primaryVelocity, secondaryVelocity,
                 primaryElevatorMotor.getBusVoltage(), secondaryElevatorMotor.getBusVoltage());
             
             // Check if we should exit torque mode based on timer
