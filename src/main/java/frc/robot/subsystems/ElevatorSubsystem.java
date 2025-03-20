@@ -1,11 +1,14 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -20,6 +23,7 @@ public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMax primaryElevatorMotor;
     private final SparkMax secondaryElevatorMotor;
     private final RelativeEncoder encoder;
+    private final SparkClosedLoopController closedLoopController;
     private final DigitalInput topLimitSwitch;
     private final DigitalInput bottomLimitSwitch;
 
@@ -29,6 +33,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMaxSim secondaryElevatorMotorSim;
 
     // Constants
+    private static final double MAX_OUTPUT = 1.0;
+    private static final double MIN_OUTPUT = -1.0;
     private static final double TOLERANCE = 0.5;
 
     // Elevator Position Constants (in encoder units)
@@ -38,11 +44,11 @@ public class ElevatorSubsystem extends SubsystemBase {
     // Predefined heights in encoder units
     private static final double LEVEL_0_HEIGHT = 0.0;   // Bottom level (home position)
     private static final double LEVEL_1_HEIGHT = 9.66;  // First level
-    private static final double LEVEL_2_HEIGHT = 19.66; // Mid level
+    private static final double LEVEL_2_HEIGHT = 19.66;  // Mid level
     private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
 
     // PID Constants - Tune these values during testing
-    private static final double kP = 0.6;
+    private static final double kP = 0.5;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.0;
@@ -54,12 +60,10 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final boolean USE_MOTION_PROFILE = false; // Set to true to use motion profiling
 
     // Torque mode constants
-    private static final double ELEVATOR_TORQUE = 0.1; // Initial torque for movement (0-1)
-    private static final double TORQUE_TIMEOUT = 0.8; // Time in seconds to apply torque before switching to PID
-    private static final double POSITION_ERROR_THRESHOLD = 1.0; // Error threshold to switch to torque mode
-    private static final double REGULAR_POWER = 0.20; // Speed for non-torque mode when moving up
-    private static final double DOWN_POWER = 0.10; // Slower speed for moving down to prevent slamming
-    private static final double HOLDING_POWER = 0.05; // Small power to counteract gravity when at position
+    private static final double ELEVATOR_TORQUE = 0.4; // Initial torque for movement (0-1)
+    private static final double MIN_TORQUE_OUTPUT = 0.15; // Minimum output to overcome static friction
+    private static final double TORQUE_TIMEOUT = 1; // Time in seconds to apply torque before switching to PID
+    private static final double POSITION_ERROR_THRESHOLD = 2.0; // Error threshold to switch to torque mode
     
     private static final int MAX_CURRENT = 40;
     
@@ -90,17 +94,31 @@ public class ElevatorSubsystem extends SubsystemBase {
         topLimitSwitch = new DigitalInput(topLimitSwitchId);
         bottomLimitSwitch = new DigitalInput(bottomLimitSwitchId);
         
-        // Get encoder from primary motor
+        // Get encoder and controller from primary motor
         encoder = primaryElevatorMotor.getEncoder();
+        closedLoopController = primaryElevatorMotor.getClosedLoopController();
 
         // Initialize error filter (single pole IIR filter with 0.1 time constant)
         errorFilter = LinearFilter.singlePoleIIR(0.1, 0.02);
 
-        // Configure the primary motor
+        // Configure the primary motor with PID
         SparkMaxConfig primaryConfig = new SparkMaxConfig();
         primaryConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(MAX_CURRENT);
+        
+        primaryConfig.closedLoop
+            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+            .pid(kP, kI, kD)
+            .velocityFF(kFF)
+            .outputRange(MIN_OUTPUT, MAX_OUTPUT);
+            
+        // Configure motion profiling if enabled
+        if (USE_MOTION_PROFILE) {
+            // We'll use standard PID with higher output limits instead of SmartMotion
+            primaryConfig.closedLoop
+                .outputRange(-1.0, 1.0); // Full range for faster movement
+        }
             
         primaryElevatorMotor.configure(
             primaryConfig,
@@ -156,23 +174,8 @@ public class ElevatorSubsystem extends SubsystemBase {
             // If error is large, use torque mode for initial movement
             enableTorqueMode();
         } else {
-            // For small adjustments, use non-torque open-loop control
-            double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
-            
-            // Use different power levels for up vs down movement
-            double output;
-            if (direction > 0) {
-                // Moving up - use regular power
-                output = REGULAR_POWER * direction;
-            } else {
-                // Moving down - use reduced power to prevent slamming
-                output = DOWN_POWER * direction;
-            }
-            
-            // Set both motors to the same non-torque output
-            primaryElevatorMotor.set(output);
-            secondaryElevatorMotor.set(output);
-            Logger.log("Setting elevator motors to " + output + " (non-torque mode)");
+            // For small adjustments, just use PID
+            closedLoopController.setReference(position, ControlType.kPosition);
         }
     }
     
@@ -190,6 +193,11 @@ public class ElevatorSubsystem extends SubsystemBase {
         // Apply torque in the correct direction
         double torqueOutput = ELEVATOR_TORQUE * direction;
         
+        // Ensure we're applying enough power to overcome static friction
+        if (Math.abs(torqueOutput) < MIN_TORQUE_OUTPUT) {
+            torqueOutput = MIN_TORQUE_OUTPUT * direction;
+        }
+        
         // Set both motors to the same torque output
         primaryElevatorMotor.set(torqueOutput);
         secondaryElevatorMotor.set(torqueOutput);
@@ -204,23 +212,10 @@ public class ElevatorSubsystem extends SubsystemBase {
         inTorqueMode = false;
         torqueModeTimer.stop();
         
-        // Determine direction based on error
-        double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
+        // Switch to PID control
+        closedLoopController.setReference(targetPosition, ControlType.kPosition);
         
-        // Apply non-torque speed in the correct direction
-        double nonTorqueOutput;
-        if (direction > 0) {
-            // Moving up - use regular power
-            nonTorqueOutput = REGULAR_POWER * direction;
-        } else {
-            // Moving down - use reduced power to prevent slamming
-            nonTorqueOutput = DOWN_POWER * direction;
-        }
-        
-        // Set both motors to the same non-torque output
-        primaryElevatorMotor.set(nonTorqueOutput);
-        secondaryElevatorMotor.set(nonTorqueOutput);
-        Logger.log("Switching to non-torque mode with output: " + nonTorqueOutput);
+        Logger.log("Switching to PID control");
     }
     
     /**
@@ -285,20 +280,16 @@ public class ElevatorSubsystem extends SubsystemBase {
                 setTargetPosition(LEVEL_0_HEIGHT);
                 break;
             case 1:
-                Logger.log("Moving to level 1");
                 setTargetPosition(LEVEL_1_HEIGHT);
                 break;
             case 2:
-                Logger.log("Moving to level 2");
                 setTargetPosition(LEVEL_2_HEIGHT);
                 break;
             case 3:
-                Logger.log("Moving to level 3");
                 setTargetPosition(LEVEL_3_HEIGHT);
                 break;
             default:
-                Logger.log("Invalid level: " + level);
-                break;
+                throw new IllegalArgumentException("Invalid level: " + level);
         }
     }
 
@@ -355,56 +346,30 @@ public class ElevatorSubsystem extends SubsystemBase {
             double filteredError = getFilteredError();
             double torqueTime = torqueModeTimer.get();
             double motorOutput = primaryElevatorMotor.get();
+            double motorVelocity = encoder.getVelocity();
             
             Logger.logf(
-                "TORQUE_MODE_DEBUG - Time: %.3fs, Pos: %.2f, Target: %.2f, Error: %.2f, Filtered: %.2f, Output: %.2f",
-                torqueTime, currentPosition, targetPosition, currentError, filteredError, motorOutput);
+                "TORQUE_MODE_DEBUG - Time: %.3fs, Pos: %.2f, Target: %.2f, Error: %.2f, Filtered: %.2f, Output: %.2f, Velocity: %.2f, P1 Voltage: %.2f, P2 Voltage: %.2f",
+                torqueTime, currentPosition, targetPosition, currentError, filteredError, motorOutput, motorVelocity, 
+                primaryElevatorMotor.getBusVoltage(), secondaryElevatorMotor.getBusVoltage());
             
             // Check if we should exit torque mode based on timer
             if (torqueModeTimer.get() >= TORQUE_TIMEOUT) {
+                Logger.log("Torque mode timeout - switching to PID control");
                 disableTorqueMode();
             }
             // Alternatively, exit torque mode if we're close to the target
             else if (Math.abs(getFilteredError()) < TOLERANCE * 2) {
                 disableTorqueMode();
             }
-        } else {
-            // In non-torque mode, check if we need to stop at target position
-            double currentPosition = getCurrentPosition();
-            double currentError = targetPosition - currentPosition;
-            
-            // If we're close to the target position, apply holding power
-            if (Math.abs(currentError) < TOLERANCE) {
-                // Apply small holding power to counteract gravity
-                // Positive value to counteract gravity (assuming elevator moves up with positive values)
-                primaryElevatorMotor.set(HOLDING_POWER);
-                secondaryElevatorMotor.set(HOLDING_POWER);
-                Logger.log("Target position reached, applying holding power: " + HOLDING_POWER);
-            } else {
-                // Otherwise, adjust direction if needed
-                double direction = currentError > 0 ? 1.0 : -1.0;
-                
-                // Use different power levels for up vs down movement
-                double output;
-                if (direction > 0) {
-                    // Moving up - use regular power
-                    output = REGULAR_POWER * direction;
-                } else {
-                    // Moving down - use reduced power to prevent slamming
-                    output = DOWN_POWER * direction;
-                }
-                
-                // Update motor outputs
-                primaryElevatorMotor.set(output);
-                secondaryElevatorMotor.set(output);
-            }
         }
         
         // Print periodic status every 50 calls (about once per second)
         if (periodicCounter++ % 50 == 0) {
-            Logger.logf("Elevator Status - Pos: %.2f, Target: %.2f, P1 Speed: %.2f, P2 Speed: %.2f, TorqueMode: %b",
+            Logger.logf("Elevator Status - Pos: %.2f, Target: %.2f, P1 Speed: %.2f, P1 Voltage: %.2f, P2 Speed: %.2f, P2 Voltage: %.2f, TorqueMode: %b",
                 getCurrentPosition(), targetPosition, 
-                primaryElevatorMotor.get(), secondaryElevatorMotor.get(), inTorqueMode);
+                primaryElevatorMotor.get(), primaryElevatorMotor.getBusVoltage(),
+                secondaryElevatorMotor.get(), secondaryElevatorMotor.getBusVoltage(), inTorqueMode);
         }
         
         updateTelemetry();
