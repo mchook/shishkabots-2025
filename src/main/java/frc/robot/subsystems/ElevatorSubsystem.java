@@ -168,13 +168,17 @@ public class ElevatorSubsystem extends SubsystemBase {
         Logger.log("Setting elevator position to " + position + " (current: " + getCurrentPosition() + ")");
         
         // Calculate error to determine if we need torque mode
-        double error = Math.abs(targetPosition - getCurrentPosition());
+        double error = targetPosition - getCurrentPosition();
+        double absError = Math.abs(error);
         
-        if (error > POSITION_ERROR_THRESHOLD) {
-            // If error is large, use torque mode for initial movement
+        // Only use torque mode for upward motion with large error
+        if (absError > POSITION_ERROR_THRESHOLD && error > 0) {
+            // If error is large and we're moving up, use torque mode for initial movement
+            Logger.log("Using torque mode for upward motion");
             enableTorqueMode();
         } else {
-            // For small adjustments, just use PID
+            // For downward motion or small adjustments, just use PID
+            Logger.log("Using PID control for downward motion or small adjustments");
             closedLoopController.setReference(position, ControlType.kPosition);
         }
     }
