@@ -345,6 +345,9 @@ public class ElevatorSubsystem extends SubsystemBase {
             else if (Math.abs(getFilteredError()) < TOLERANCE * 2) {
                 disableTorqueMode();
             }
+        } else {
+            // In PID mode, make secondary motor follow primary motor
+            secondaryElevatorMotor.set(primaryElevatorMotor.get());
         }
         
         // Print periodic status every 50 calls (about once per second)
