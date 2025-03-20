@@ -35,8 +35,9 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double TOP_THRESHOLD = 40.0;  // Adjust based on actual max height
     
     // Predefined heights in encoder units
+    private static final double LEVEL_0_HEIGHT = 0.0;   // Bottom level (home position)
     private static final double LEVEL_1_HEIGHT = 9.66;  // First level
-    private static final double LEVEL_2_HEIGHT = 19.66;  // Mid level
+    private static final double LEVEL_2_HEIGHT = 19.66; // Mid level
     private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
 
     // PID Constants - Tune these values during testing
@@ -54,8 +55,9 @@ public class ElevatorSubsystem extends SubsystemBase {
     // Torque mode constants
     private static final double ELEVATOR_TORQUE = 0.1; // Initial torque for movement (0-1)
     private static final double TORQUE_TIMEOUT = 0.8; // Time in seconds to apply torque before switching to PID
-    private static final double POSITION_ERROR_THRESHOLD = 2.0; // Error threshold to switch to torque mode
-    private static final double REGULAR_POWER = 0.3; // Speed for non-torque mode (lower than torque mode)
+    private static final double POSITION_ERROR_THRESHOLD = 1.0; // Error threshold to switch to torque mode
+    private static final double REGULAR_POWER = 0.20; // Speed for non-torque mode when moving up
+    private static final double DOWN_POWER = 0.10; // Slower speed for moving down to prevent slamming
     private static final double HOLDING_POWER = 0.05; // Small power to counteract gravity when at position
     
     private static final int MAX_CURRENT = 40;
@@ -155,13 +157,21 @@ public class ElevatorSubsystem extends SubsystemBase {
         } else {
             // For small adjustments, use non-torque open-loop control
             double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
-            double output = REGULAR_POWER * direction;
+            
+            // Use different power levels for up vs down movement
+            double output;
+            if (direction > 0) {
+                // Moving up - use regular power
+                output = REGULAR_POWER * direction;
+            } else {
+                // Moving down - use reduced power to prevent slamming
+                output = DOWN_POWER * direction;
+            }
             
             // Set both motors to the same non-torque output
             primaryElevatorMotor.set(output);
             secondaryElevatorMotor.set(output);
-            
-            System.out.println("Using non-torque mode for small adjustment with output: " + output);
+            System.out.println("Setting elevator motors to " + output + " (non-torque mode)");
         }
     }
     
@@ -197,12 +207,18 @@ public class ElevatorSubsystem extends SubsystemBase {
         double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
         
         // Apply non-torque speed in the correct direction
-        double nonTorqueOutput = REGULAR_POWER * direction;
+        double nonTorqueOutput;
+        if (direction > 0) {
+            // Moving up - use regular power
+            nonTorqueOutput = REGULAR_POWER * direction;
+        } else {
+            // Moving down - use reduced power to prevent slamming
+            nonTorqueOutput = DOWN_POWER * direction;
+        }
         
         // Set both motors to the same non-torque output
         primaryElevatorMotor.set(nonTorqueOutput);
         secondaryElevatorMotor.set(nonTorqueOutput);
-        
         System.out.println("Switching to non-torque mode with output: " + nonTorqueOutput);
     }
     
@@ -258,40 +274,50 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     /**
      * Sets the elevator to a predefined level
-     * @param level 1 for bottom, 2 for middle, 3 for top
+     * @param level 0 for bottom, 1 for first level, 2 for middle, 3 for top
      */
     public void goToLevel(int level) {
         System.out.println("Moving elevator to level " + level);
         switch (level) {
+            case 0:
+                System.out.println("Moving to bottom level");
+                setTargetPosition(LEVEL_0_HEIGHT);
+                break;
             case 1:
+                System.out.println("Moving to level 1");
                 setTargetPosition(LEVEL_1_HEIGHT);
                 break;
             case 2:
+                System.out.println("Moving to level 2");
                 setTargetPosition(LEVEL_2_HEIGHT);
                 break;
             case 3:
+                System.out.println("Moving to level 3");
                 setTargetPosition(LEVEL_3_HEIGHT);
                 break;
             default:
-                throw new IllegalArgumentException("Invalid level: " + level);
+                System.out.println("Invalid level: " + level);
+                break;
         }
     }
 
     /**
-     * Returns the current level of the elevator (1, 2, or 3)
-     * Returns 0 if between levels
+     * Returns the current level of the elevator (0, 1, 2, or 3)
+     * Returns -1 if between levels
      */
     public int getCurrentLevel() {
         double position = getCurrentPosition();
         
-        if (Math.abs(position - LEVEL_1_HEIGHT) < TOLERANCE) {
+        if (Math.abs(position - LEVEL_0_HEIGHT) < TOLERANCE) {
+            return 0;
+        } else if (Math.abs(position - LEVEL_1_HEIGHT) < TOLERANCE) {
             return 1;
         } else if (Math.abs(position - LEVEL_2_HEIGHT) < TOLERANCE) {
             return 2;
         } else if (Math.abs(position - LEVEL_3_HEIGHT) < TOLERANCE) {
             return 3;
         } else {
-            return 0; // Between levels
+            return -1; // Between levels
         }
     }
     
@@ -356,7 +382,16 @@ public class ElevatorSubsystem extends SubsystemBase {
             } else {
                 // Otherwise, adjust direction if needed
                 double direction = currentError > 0 ? 1.0 : -1.0;
-                double output = REGULAR_POWER * direction;
+                
+                // Use different power levels for up vs down movement
+                double output;
+                if (direction > 0) {
+                    // Moving up - use regular power
+                    output = REGULAR_POWER * direction;
+                } else {
+                    // Moving down - use reduced power to prevent slamming
+                    output = DOWN_POWER * direction;
+                }
                 
                 // Update motor outputs
                 primaryElevatorMotor.set(output);

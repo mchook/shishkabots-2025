@@ -22,6 +22,7 @@ import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj2.command.button.POVButton;
 
 public class RobotContainer {
   // The robot's subsystems
@@ -91,14 +92,17 @@ public class RobotContainer {
   private void configureBindings() {
     // Xbox Controller Bindings
     if (useXboxController) {
-      /*new JoystickButton(xboxController, XboxController.Button.kA.value)
+      new JoystickButton(xboxController, XboxController.Button.kA.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
       new JoystickButton(xboxController, XboxController.Button.kB.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
       new JoystickButton(xboxController, XboxController.Button.kY.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
+      // Add binding for bottom position (level 0) on D-pad down
+      new POVButton(xboxController, 180) // 180 degrees is down on the D-pad
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 0));
       new JoystickButton(xboxController, XboxController.Button.kX.value)
-          .whileTrue(new LimelightDebugCommand(limelightSubsystem));*/
+          .whileTrue(new LimelightDebugCommand(limelightSubsystem));
       new JoystickButton(xboxController, XboxController.Button.kX.value)
           .onTrue(new PrepareShooterCommand(shooterSubsystem));
 
@@ -116,6 +120,9 @@ public class RobotContainer {
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
       new JoystickButton(ps4Controller, PS4Controller.Button.kTriangle.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
+      // Add binding for bottom position (level 0) on D-pad down
+      new POVButton(ps4Controller, 180) // 180 degrees is down on the D-pad
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 0));
       new JoystickButton(ps4Controller, PS4Controller.Button.kSquare.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
 
