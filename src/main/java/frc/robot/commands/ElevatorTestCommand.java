@@ -2,7 +2,11 @@ package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.ElevatorSubsystem;
+import frc.robot.util.Logger;
 
+/**
+ * Command to test the elevator by moving it to a specific level
+ */
 public class ElevatorTestCommand extends Command {
     private final ElevatorSubsystem elevator;
     private final int targetLevel;
@@ -20,6 +24,7 @@ public class ElevatorTestCommand extends Command {
 
     @Override
     public void initialize() {
+        Logger.log("Moving elevator to level " + targetLevel);
         elevator.goToLevel(targetLevel);
     }
 
@@ -39,8 +44,10 @@ public class ElevatorTestCommand extends Command {
     @Override
     public void end(boolean interrupted) {
         if (interrupted) {
-            System.out.println("it stopped");
+            Logger.log("Elevator test command interrupted");
             elevator.stop();
+        } else {
+            Logger.log("Elevator reached level " + targetLevel);
         }
     }
 }

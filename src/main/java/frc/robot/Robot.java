@@ -9,7 +9,14 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
+import frc.robot.util.Logger;
 
+/**
+ * The VM is configured to automatically run this class, and to call the functions corresponding to
+ * each mode, as described in the TimedRobot documentation. If you change the name of this class or
+ * the package after creating this project, you must also update the build.gradle file in the
+ * project.
+ */
 public class Robot extends TimedRobot {
   private Command autonomousCommand;
 
@@ -17,16 +24,20 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
-    // Enable data logging
-    DataLogManager.start();
+    // Initialize logger
+    Logger.init();
     
     // Log NetworkTables data
     DataLogManager.logNetworkTables(true);
     
-    // Record both DS control and joystick data
+    // Record match data
     DriverStation.startDataLog(DataLogManager.getLog());
     
-    // Instantiate our RobotContainer
+    // Log that robot has been initialized
+    Logger.log("Robot initialized");
+    
+    // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
+    // autonomous chooser on the dashboard.
     robotContainer = new RobotContainer();
   }
 

@@ -14,6 +14,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.filter.LinearFilter;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import edu.wpi.first.wpilibj.Timer;
+import frc.robot.util.Logger;
 
 public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMax primaryElevatorMotor;
@@ -134,7 +135,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         }
         
         // Log initialization
-        System.out.println("Elevator subsystem initialized");
+        Logger.log("Elevator subsystem initialized");
     }
     
     /**
@@ -146,7 +147,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         position = Math.min(Math.max(position, BOTTOM_THRESHOLD), TOP_THRESHOLD);
         
         targetPosition = position;
-        System.out.println("Setting elevator position to " + position + " (current: " + getCurrentPosition() + ")");
+        Logger.log("Setting elevator position to " + position + " (current: " + getCurrentPosition() + ")");
         
         // Calculate error to determine if we need torque mode
         double error = Math.abs(targetPosition - getCurrentPosition());
@@ -171,7 +172,7 @@ public class ElevatorSubsystem extends SubsystemBase {
             // Set both motors to the same non-torque output
             primaryElevatorMotor.set(output);
             secondaryElevatorMotor.set(output);
-            System.out.println("Setting elevator motors to " + output + " (non-torque mode)");
+            Logger.log("Setting elevator motors to " + output + " (non-torque mode)");
         }
     }
     
@@ -193,7 +194,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         primaryElevatorMotor.set(torqueOutput);
         secondaryElevatorMotor.set(torqueOutput);
         
-        System.out.println("Enabling torque mode with output: " + torqueOutput);
+        Logger.log("Enabling torque mode with output: " + torqueOutput);
     }
     
     /**
@@ -219,7 +220,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         // Set both motors to the same non-torque output
         primaryElevatorMotor.set(nonTorqueOutput);
         secondaryElevatorMotor.set(nonTorqueOutput);
-        System.out.println("Switching to non-torque mode with output: " + nonTorqueOutput);
+        Logger.log("Switching to non-torque mode with output: " + nonTorqueOutput);
     }
     
     /**
@@ -265,7 +266,7 @@ public class ElevatorSubsystem extends SubsystemBase {
      * Stop the elevator motors
      */
     public void stop() {
-        System.out.println("***** Stopping elevator at position: " + getCurrentPosition());
+        Logger.log("***** Stopping elevator at position: " + getCurrentPosition());
         primaryElevatorMotor.stopMotor();
         secondaryElevatorMotor.stopMotor();  // Stop both motors
         inTorqueMode = false;
@@ -277,26 +278,26 @@ public class ElevatorSubsystem extends SubsystemBase {
      * @param level 0 for bottom, 1 for first level, 2 for middle, 3 for top
      */
     public void goToLevel(int level) {
-        System.out.println("Moving elevator to level " + level);
+        Logger.log("Moving elevator to level " + level);
         switch (level) {
             case 0:
-                System.out.println("Moving to bottom level");
+                Logger.log("Moving to bottom level");
                 setTargetPosition(LEVEL_0_HEIGHT);
                 break;
             case 1:
-                System.out.println("Moving to level 1");
+                Logger.log("Moving to level 1");
                 setTargetPosition(LEVEL_1_HEIGHT);
                 break;
             case 2:
-                System.out.println("Moving to level 2");
+                Logger.log("Moving to level 2");
                 setTargetPosition(LEVEL_2_HEIGHT);
                 break;
             case 3:
-                System.out.println("Moving to level 3");
+                Logger.log("Moving to level 3");
                 setTargetPosition(LEVEL_3_HEIGHT);
                 break;
             default:
-                System.out.println("Invalid level: " + level);
+                Logger.log("Invalid level: " + level);
                 break;
         }
     }
@@ -334,14 +335,14 @@ public class ElevatorSubsystem extends SubsystemBase {
         // Safety checks - stop if either limit switch is triggered OR position exceeds thresholds
         if (isAtTop() || getCurrentPosition() > TOP_THRESHOLD) {
             if (primaryElevatorMotor.get() > 0) {
-                System.out.println("Elevator at top limit or exceeded threshold - STOPPING");
+                Logger.log("Elevator at top limit or exceeded threshold - STOPPING");
                 stop();
             }
         }
         
         if (isAtBottom() || getCurrentPosition() < BOTTOM_THRESHOLD) {
             if (primaryElevatorMotor.get() < 0) {
-                System.out.println("Elevator at bottom limit or exceeded threshold - STOPPING");
+                Logger.log("Elevator at bottom limit or exceeded threshold - STOPPING");
                 stop();
             }
         }
@@ -355,9 +356,9 @@ public class ElevatorSubsystem extends SubsystemBase {
             double torqueTime = torqueModeTimer.get();
             double motorOutput = primaryElevatorMotor.get();
             
-            System.out.println(String.format(
+            Logger.logf(
                 "TORQUE_MODE_DEBUG - Time: %.3fs, Pos: %.2f, Target: %.2f, Error: %.2f, Filtered: %.2f, Output: %.2f",
-                torqueTime, currentPosition, targetPosition, currentError, filteredError, motorOutput));
+                torqueTime, currentPosition, targetPosition, currentError, filteredError, motorOutput);
             
             // Check if we should exit torque mode based on timer
             if (torqueModeTimer.get() >= TORQUE_TIMEOUT) {
@@ -378,7 +379,7 @@ public class ElevatorSubsystem extends SubsystemBase {
                 // Positive value to counteract gravity (assuming elevator moves up with positive values)
                 primaryElevatorMotor.set(HOLDING_POWER);
                 secondaryElevatorMotor.set(HOLDING_POWER);
-                System.out.println("Target position reached, applying holding power: " + HOLDING_POWER);
+                Logger.log("Target position reached, applying holding power: " + HOLDING_POWER);
             } else {
                 // Otherwise, adjust direction if needed
                 double direction = currentError > 0 ? 1.0 : -1.0;
@@ -401,9 +402,9 @@ public class ElevatorSubsystem extends SubsystemBase {
         
         // Print periodic status every 50 calls (about once per second)
         if (periodicCounter++ % 50 == 0) {
-            System.out.println(String.format("Elevator Status - Pos: %.2f, Target: %.2f, P1 Speed: %.2f, P2 Speed: %.2f, TorqueMode: %b",
+            Logger.logf("Elevator Status - Pos: %.2f, Target: %.2f, P1 Speed: %.2f, P2 Speed: %.2f, TorqueMode: %b",
                 getCurrentPosition(), targetPosition, 
-                primaryElevatorMotor.get(), secondaryElevatorMotor.get(), inTorqueMode));
+                primaryElevatorMotor.get(), secondaryElevatorMotor.get(), inTorqueMode);
         }
         
         updateTelemetry();

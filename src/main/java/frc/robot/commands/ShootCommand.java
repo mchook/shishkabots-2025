@@ -2,8 +2,9 @@ package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.util.Logger;
 
 /**
  * Command to shoot a coral and then lower the elevator.
@@ -42,7 +43,7 @@ public class ShootCommand extends SequentialCommandGroup {
 
         @Override
         public void initialize() {
-            System.out.println("Starting shooter motors");
+            Logger.log("Starting shooter motors");
             // have to create a elevator level for very bottom in order for this to run
             /* if (elevator.getCurrentLevel() == 0) {
                 shooter.shootBottomLevelCoral();
@@ -58,10 +59,10 @@ public class ShootCommand extends SequentialCommandGroup {
         @Override
         public void end(boolean interrupted) {
             if (interrupted) {
-                System.out.println("Shooter stopped after interruption");
+                Logger.log("Shooter stopped after interruption");
                 shooter.emergencyStop();
             } else {
-                System.out.println("Shooter stopped normally");
+                Logger.log("Shooter stopped normally");
                 // No need to stop motors here as the subsystem handles this automatically
             }
         }
