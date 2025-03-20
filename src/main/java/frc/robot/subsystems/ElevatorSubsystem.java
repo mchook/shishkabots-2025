@@ -1,14 +1,11 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.SparkClosedLoopController;
-import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.config.SparkMaxConfig;
-import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -22,7 +19,6 @@ public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMax primaryElevatorMotor;
     private final SparkMax secondaryElevatorMotor;
     private final RelativeEncoder encoder;
-    private final SparkClosedLoopController closedLoopController;
     private final DigitalInput topLimitSwitch;
     private final DigitalInput bottomLimitSwitch;
 
@@ -32,8 +28,6 @@ public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMaxSim secondaryElevatorMotorSim;
 
     // Constants
-    private static final double MAX_OUTPUT = 1.0;
-    private static final double MIN_OUTPUT = -1.0;
     private static final double TOLERANCE = 0.5;
 
     // Elevator Position Constants (in encoder units)
@@ -61,6 +55,7 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double ELEVATOR_TORQUE = 0.1; // Initial torque for movement (0-1)
     private static final double TORQUE_TIMEOUT = 0.8; // Time in seconds to apply torque before switching to PID
     private static final double POSITION_ERROR_THRESHOLD = 2.0; // Error threshold to switch to torque mode
+    private static final double NON_TORQUE_SPEED = 0.3; // Speed for non-torque mode (lower than torque mode)
     
     private static final int MAX_CURRENT = 40;
     
@@ -91,31 +86,17 @@ public class ElevatorSubsystem extends SubsystemBase {
         topLimitSwitch = new DigitalInput(topLimitSwitchId);
         bottomLimitSwitch = new DigitalInput(bottomLimitSwitchId);
         
-        // Get encoder and controller from primary motor
+        // Get encoder from primary motor
         encoder = primaryElevatorMotor.getEncoder();
-        closedLoopController = primaryElevatorMotor.getClosedLoopController();
 
         // Initialize error filter (single pole IIR filter with 0.1 time constant)
         errorFilter = LinearFilter.singlePoleIIR(0.1, 0.02);
 
-        // Configure the primary motor with PID
+        // Configure the primary motor
         SparkMaxConfig primaryConfig = new SparkMaxConfig();
         primaryConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(MAX_CURRENT);
-        
-        primaryConfig.closedLoop
-            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(kP, kI, kD)
-            .velocityFF(kFF)
-            .outputRange(MIN_OUTPUT, MAX_OUTPUT);
-            
-        // Configure motion profiling if enabled
-        if (USE_MOTION_PROFILE) {
-            // We'll use standard PID with higher output limits instead of SmartMotion
-            primaryConfig.closedLoop
-                .outputRange(-1.0, 1.0); // Full range for faster movement
-        }
             
         primaryElevatorMotor.configure(
             primaryConfig,
@@ -171,8 +152,15 @@ public class ElevatorSubsystem extends SubsystemBase {
             // If error is large, use torque mode for initial movement
             enableTorqueMode();
         } else {
-            // For small adjustments, just use PID
-            closedLoopController.setReference(position, ControlType.kPosition);
+            // For small adjustments, use non-torque open-loop control
+            double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
+            double output = NON_TORQUE_SPEED * direction;
+            
+            // Set both motors to the same non-torque output
+            primaryElevatorMotor.set(output);
+            secondaryElevatorMotor.set(output);
+            
+            System.out.println("Using non-torque mode for small adjustment with output: " + output);
         }
     }
     
@@ -204,10 +192,17 @@ public class ElevatorSubsystem extends SubsystemBase {
         inTorqueMode = false;
         torqueModeTimer.stop();
         
-        // Switch to PID control
-        closedLoopController.setReference(targetPosition, ControlType.kPosition);
+        // Determine direction based on error
+        double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
         
-        System.out.println("Switching to PID control");
+        // Apply non-torque speed in the correct direction
+        double nonTorqueOutput = NON_TORQUE_SPEED * direction;
+        
+        // Set both motors to the same non-torque output
+        primaryElevatorMotor.set(nonTorqueOutput);
+        secondaryElevatorMotor.set(nonTorqueOutput);
+        
+        System.out.println("Switching to non-torque mode with output: " + nonTorqueOutput);
     }
     
     /**
@@ -346,8 +341,24 @@ public class ElevatorSubsystem extends SubsystemBase {
                 disableTorqueMode();
             }
         } else {
-            // In PID mode, make secondary motor follow primary motor
-            secondaryElevatorMotor.set(primaryElevatorMotor.get());
+            // In non-torque mode, check if we need to stop at target position
+            double currentPosition = getCurrentPosition();
+            double currentError = targetPosition - currentPosition;
+            
+            // If we're close to the target position, stop the motors
+            if (Math.abs(currentError) < TOLERANCE) {
+                primaryElevatorMotor.stopMotor();
+                secondaryElevatorMotor.stopMotor();
+                System.out.println("Target position reached, stopping motors");
+            } else {
+                // Otherwise, adjust direction if needed
+                double direction = currentError > 0 ? 1.0 : -1.0;
+                double output = NON_TORQUE_SPEED * direction;
+                
+                // Update motor outputs
+                primaryElevatorMotor.set(output);
+                secondaryElevatorMotor.set(output);
+            }
         }
         
         // Print periodic status every 50 calls (about once per second)
