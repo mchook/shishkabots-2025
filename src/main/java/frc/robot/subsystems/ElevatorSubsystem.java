@@ -55,7 +55,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double ELEVATOR_TORQUE = 0.1; // Initial torque for movement (0-1)
     private static final double TORQUE_TIMEOUT = 0.8; // Time in seconds to apply torque before switching to PID
     private static final double POSITION_ERROR_THRESHOLD = 2.0; // Error threshold to switch to torque mode
-    private static final double NON_TORQUE_SPEED = 0.3; // Speed for non-torque mode (lower than torque mode)
+    private static final double REGULAR_POWER = 0.3; // Speed for non-torque mode (lower than torque mode)
+    private static final double HOLDING_POWER = 0.05; // Small power to counteract gravity when at position
     
     private static final int MAX_CURRENT = 40;
     
@@ -154,7 +155,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         } else {
             // For small adjustments, use non-torque open-loop control
             double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
-            double output = NON_TORQUE_SPEED * direction;
+            double output = REGULAR_POWER * direction;
             
             // Set both motors to the same non-torque output
             primaryElevatorMotor.set(output);
@@ -196,7 +197,7 @@ public class ElevatorSubsystem extends SubsystemBase {
         double direction = targetPosition > getCurrentPosition() ? 1.0 : -1.0;
         
         // Apply non-torque speed in the correct direction
-        double nonTorqueOutput = NON_TORQUE_SPEED * direction;
+        double nonTorqueOutput = REGULAR_POWER * direction;
         
         // Set both motors to the same non-torque output
         primaryElevatorMotor.set(nonTorqueOutput);
@@ -345,15 +346,17 @@ public class ElevatorSubsystem extends SubsystemBase {
             double currentPosition = getCurrentPosition();
             double currentError = targetPosition - currentPosition;
             
-            // If we're close to the target position, stop the motors
+            // If we're close to the target position, apply holding power
             if (Math.abs(currentError) < TOLERANCE) {
-                primaryElevatorMotor.stopMotor();
-                secondaryElevatorMotor.stopMotor();
-                System.out.println("Target position reached, stopping motors");
+                // Apply small holding power to counteract gravity
+                // Positive value to counteract gravity (assuming elevator moves up with positive values)
+                primaryElevatorMotor.set(HOLDING_POWER);
+                secondaryElevatorMotor.set(HOLDING_POWER);
+                System.out.println("Target position reached, applying holding power: " + HOLDING_POWER);
             } else {
                 // Otherwise, adjust direction if needed
                 double direction = currentError > 0 ? 1.0 : -1.0;
-                double output = NON_TORQUE_SPEED * direction;
+                double output = REGULAR_POWER * direction;
                 
                 // Update motor outputs
                 primaryElevatorMotor.set(output);
