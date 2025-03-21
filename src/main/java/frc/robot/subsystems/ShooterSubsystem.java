@@ -9,6 +9,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.ColorSensorV3;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -29,12 +30,16 @@ public class ShooterSubsystem extends SubsystemBase {
 
     private final SparkMax leftMotor;
     private final SparkMax rightMotor;
+    private int sensorUpdateCounter = 0;
     
     // Color sensor for game piece detection
     private ColorSensorV3 colorSensor;
     private static final int PROXIMITY_THRESHOLD = 100; // Adjust based on testing
     private int lastProximity = 0;
     private boolean hasColorSensor = false;
+
+    private boolean gamePieceDetected = false;
+    private boolean gamePieceExited = false;
 
     // State management
     private ShooterState currentState = ShooterState.NO_CORAL;
@@ -183,22 +188,26 @@ public class ShooterSubsystem extends SubsystemBase {
      * @return true if a game piece is detected at the entry of the shooter, false if no sensor
      */
     public boolean hasGamePieceEntered() {
-        if (!hasColorSensor) {
-            return false;
-        }
+if (!hasColorSensor) {
+    return false;
+}
 
-        int proximity = colorSensor.getProximity();
-        boolean isClose = proximity > PROXIMITY_THRESHOLD;
-        
-        // If we detect a sudden increase in proximity, a game piece likely entered
-        if (isClose && lastProximity <= PROXIMITY_THRESHOLD) {
-            var detectedColor = colorSensor.getColor();
-            Logger.log(String.format("Coral detected! Color: R=%.2f, G=%.2f, B=%.2f, Proximity=%d",
-                detectedColor.red, detectedColor.green, detectedColor.blue, proximity));
-        }
-        
-        lastProximity = proximity;
-        return isClose;
+try {
+    int proximity = colorSensor.getProximity();
+    boolean isClose = proximity > PROXIMITY_THRESHOLD;
+
+    if (isClose && lastProximity <= PROXIMITY_THRESHOLD) {
+        var detectedColor = colorSensor.getColor();
+        System.out.println(String.format("Coral detected! Color: R=%.2f, G=%.2f, B=%.2f, Proximity=%d",
+            detectedColor.red, detectedColor.green, detectedColor.blue, proximity));
+    }
+
+    lastProximity = proximity;
+    return isClose;
+} catch (Exception e) {
+    System.out.println("Error reading color sensor in hasGamePieceEntered: " + e.getMessage());
+    return false;
+}
     }
 
     /**
@@ -209,16 +218,21 @@ public class ShooterSubsystem extends SubsystemBase {
         if (!hasColorSensor) {
             return false;
         }
-
-        int proximity = colorSensor.getProximity();
-        boolean hasExited = lastProximity > PROXIMITY_THRESHOLD && proximity <= PROXIMITY_THRESHOLD;
-        Logger.log("proxity sensor value = " + proximity + " hasExited = " + hasExited);
-        if (hasExited) {
-            Logger.log("Coral has exited the shooter");
+    
+        try {
+            int proximity = colorSensor.getProximity();
+            boolean hasExited = lastProximity > PROXIMITY_THRESHOLD && proximity <= PROXIMITY_THRESHOLD;
+    
+            if (hasExited) {
+                System.out.println("Coral has exited the shooter");
+            }
+    
+            lastProximity = proximity;
+            return hasExited;
+        } catch (Exception e) {
+            System.out.println("Error reading color sensor in hasGamePieceExited: " + e.getMessage());
+            return false;
         }
-        
-        lastProximity = proximity;
-        return hasExited;
     }
 
     /**
@@ -261,10 +275,33 @@ public class ShooterSubsystem extends SubsystemBase {
                 // Just waiting for prepare command
                 break;
         }
-        
-        // Update telemetry
-        updateTelemetry();
-    }
+    
+        // Only query the sensor every 5 cycles (adjust as needed)
+        if (sensorUpdateCounter++ % 5 == 0) {
+            try {
+                int proximity = colorSensor.getProximity();
+                boolean isClose = proximity > PROXIMITY_THRESHOLD;
+    
+                gamePieceDetected = isClose && lastProximity <= PROXIMITY_THRESHOLD;
+                gamePieceExited = lastProximity > PROXIMITY_THRESHOLD && proximity <= PROXIMITY_THRESHOLD;
+    
+                lastProximity = proximity;
+    
+                if (gamePieceDetected) {
+                    var detectedColor = colorSensor.getColor();
+                    System.out.println(String.format("Coral detected! Color: R=%.2f, G=%.2f, B=%.2f, Proximity=%d",
+                        detectedColor.red, detectedColor.green, detectedColor.blue, proximity));
+                }
+    
+                if (gamePieceExited) {
+                    System.out.println("Coral has exited the shooter");
+                }
+    
+            } catch (Exception e) {
+                DriverStation.reportError("Error reading color sensor in periodic: " + e.getMessage(), e.getStackTrace());
+            }
+        }
+}
 
     private void updateTelemetry() {
         // Left motor telemetry
