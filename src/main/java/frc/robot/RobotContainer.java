@@ -5,6 +5,8 @@
 package frc.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
+
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -39,7 +41,6 @@ public class RobotContainer {
 
   private final LimelightSubsystem limelightSubsystem = new LimelightSubsystem();
   private final DriveSubsystem driveSubsystem = new DriveSubsystem(limelightSubsystem);
-  private final SendableChooser<Command> autoChooser;
 
   // The driver's controllers
   private final XboxController xboxController = new XboxController(1);
@@ -49,6 +50,13 @@ public class RobotContainer {
   private final boolean useXboxController = true;
 
   private static final double DEADBAND = 0.1;
+  
+  // setup the AutoBuilder with all pathplanner paths in place
+  private final SendableChooser<Command> autoChooser;
+
+  // Register Named Commands for Auton Routines
+  NamedCommands.registerCommand("shootBottomLevel", new ShootCommand());
+  NamedCommands.registerCommand("testAllCoralPos", new TestAllCoralPos());
 
   public LimelightSubsystem getLimelightSubsystem() {
     return limelightSubsystem;
@@ -87,7 +95,7 @@ public class RobotContainer {
         )
     );
 
-    autoChooser = AutoBuilder.buildAutoChooser("d");
+    autoChooser = AutoBuilder.buildAutoChooser("shish-test");
   }
 
   private void configureBindings() {
@@ -108,7 +116,7 @@ public class RobotContainer {
           .onTrue(Commands.either(
               new FineTuneShooterIntakeCommand(shooterSubsystem),
               new PrepareShooterCommand(shooterSubsystem),
-              () -> shooterSubsystem.getState() == ShooterState.SHOOT_CORAL
+              () -> shooterSubsystem.getState() == ShooterState.CORAL_INSIDE
           ));
 
       // Add binding for elevator calibration (Back/Select button)
@@ -200,7 +208,6 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // Create and return the autonomous command
-    //return new AutonomousCommand(driveSubsystem, 2.0);
-    return new TestAllCoralPos(driveSubsystem);
+    return autoChooser.getSelected();
   }
 }

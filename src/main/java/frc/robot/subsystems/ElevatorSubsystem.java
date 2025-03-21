@@ -40,13 +40,13 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     // Elevator Position Constants (in encoder units)
     private static final double BOTTOM_THRESHOLD = -5.0;
-    private static final double TOP_THRESHOLD = 45.0;  // Adjust based on actual max height
+    private static final double TOP_THRESHOLD = 37.5;  // Adjust based on actual max height
     
     // Predefined heights in encoder units
     private static final double LEVEL_0_HEIGHT = 0.0;   // Bottom level (home position)
     private static final double LEVEL_1_HEIGHT = 10.22;  // First level
     private static final double LEVEL_2_HEIGHT = 22.0;  // Mid level
-    private static final double LEVEL_3_HEIGHT = 37.5;  // Top level
+    private static final double LEVEL_3_HEIGHT = 27.1;  // Top level
 
     // PID Constants - Tune these values during testing
     private static final double kP = 0.55;

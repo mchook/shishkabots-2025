@@ -11,15 +11,33 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "shootBottomLevel"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "2, b"
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "prepareShooter"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "3, b"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "shootBottomLevel"
           }
         },
         {

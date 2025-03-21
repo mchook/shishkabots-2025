@@ -11,9 +11,9 @@
           }
         },
         {
-          "type": "wait",
+          "type": "named",
           "data": {
-            "waitTime": 1.5
+            "name": "shootBottomLevel"
           }
         },
         {
@@ -23,9 +23,21 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "prepareShooter"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "3, i"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "shootBottomLevel"
           }
         },
         {

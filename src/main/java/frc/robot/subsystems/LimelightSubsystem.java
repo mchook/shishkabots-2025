@@ -53,6 +53,7 @@ public class LimelightSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Limelight Y", currentY);
         SmartDashboard.putNumber("Limelight Area", currentArea);
         SmartDashboard.putBoolean("Limelight Has Target", currentTarget > 0.5);
+        SmartDashboard.putNumber("Limelight distance", getDistanceFromTag(1.6, -getX()));
     }
     
     /**
@@ -147,6 +148,11 @@ public class LimelightSubsystem extends SubsystemBase {
     public double getTimeRecordedInMilis() {
         return millisTimeRecorded;
     }
+
+    public double getDistanceFromTag(double tagHeight, double tagYDiff) {
+        double heightDiff = tagHeight - LimelightConstants.kCameraToRobot.getZ();
+        return heightDiff / Math.tan(Math.toRadians(-getX()));
+    }
     /*
      * If it detects an AprilTag ID, get it's pose to estimate the robot location with tx, ty, heightDiff
      */
@@ -155,11 +161,13 @@ public class LimelightSubsystem extends SubsystemBase {
         if (!isTargetValid()) {
             return null;    
         } 
-        Pose3d tag = aprilTagField.getTagPose(getTargetID()).orElseThrow(() -> new RuntimeException("Apriltag ID not found"));
+        Pose3d tag = aprilTagField.getTagPose(getTargetID()).orElse(null);
+        if (tag == null) {
+            return null;
+        }
         double yaw = robotRotation2d.getRadians();
-        double heightDiff = tag.getZ() - LimelightConstants.kCameraToRobot.getZ();
-        double distance = heightDiff / Math.tan(getY());
-        double beta = yaw - getX();
+        double distance = getDistanceFromTag(tag.getZ(), -getX());
+        double beta = yaw - Math.toRadians(getY());
         double x = Math.cos(beta) * distance;
         double y = Math.sin(beta) * distance;
         Translation2d tagToCamera = new Translation2d(-x, -y);
@@ -168,7 +176,6 @@ public class LimelightSubsystem extends SubsystemBase {
         new Pose2d(tag.toPose2d().getTranslation().plus(tagToCamera), new Rotation2d(yaw));
 
         Translation2d offset = LimelightConstants.kCameraToRobot.toTranslation2d().rotateBy(robotRotation2d);
-        Pose2d pose = new Pose2d(cameraPose.getTranslation().minus(offset), new Rotation2d(yaw));
-        return pose;
+        return new Pose2d(cameraPose.getTranslation().minus(offset), new Rotation2d(yaw));
     }
 }
