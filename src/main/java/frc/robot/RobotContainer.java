@@ -24,7 +24,6 @@ import frc.robot.subsystems.LimelightSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.ShooterSubsystem.ShooterState;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
-import edu.wpi.first.wpilibj.PS4Controller;
 import edu.wpi.first.wpilibj.XboxController;
 
 public class RobotContainer {
@@ -43,11 +42,11 @@ public class RobotContainer {
   private final DriveSubsystem driveSubsystem = new DriveSubsystem(limelightSubsystem);
 
   // The driver's controllers
-  private final XboxController xboxController = new XboxController(1);
-  private final PS4Controller ps4Controller = new PS4Controller(0);
-
-  // Set which controller to use (true for Xbox, false for PS4)
-  private final boolean useXboxController = true;
+  // Primary controller (port 0) is for the main driver
+  // Secondary controller (port 1) is for the operator/co-pilot
+  // Both controllers have the same button mappings for redundancy
+  private final XboxController xboxController = new XboxController(0); // Primary controller on port 0
+  private final XboxController secondaryXboxController = new XboxController(1); // Secondary controller on port 1
 
   private static final double DEADBAND = 0.1;
   
@@ -66,18 +65,30 @@ public class RobotContainer {
   }
 
   private double getForwardInput() {
-    double raw = useXboxController ? -xboxController.getLeftY() : -ps4Controller.getLeftY();
-    return applyDeadband(raw);
+    // Use primary controller input, but if it's not moving, check secondary
+    double primaryInput = -xboxController.getLeftY();
+    if (Math.abs(primaryInput) < DEADBAND) {
+      return applyDeadband(-secondaryXboxController.getLeftY());
+    }
+    return applyDeadband(primaryInput);
   }
 
   private double getStrafeInput() {
-    double raw = useXboxController ? -xboxController.getLeftX() : -ps4Controller.getLeftX();
-    return applyDeadband(raw);
+    // Use primary controller input, but if it's not moving, check secondary
+    double primaryInput = -xboxController.getLeftX();
+    if (Math.abs(primaryInput) < DEADBAND) {
+      return applyDeadband(-secondaryXboxController.getLeftX());
+    }
+    return applyDeadband(primaryInput);
   }
 
   private double getRotationInput() {
-    double raw = useXboxController ? -xboxController.getRightX() : -ps4Controller.getRightX();
-    return applyDeadband(raw);
+    // Use primary controller input, but if it's not moving, check secondary
+    double primaryInput = -xboxController.getRightX();
+    if (Math.abs(primaryInput) < DEADBAND) {
+      return applyDeadband(-secondaryXboxController.getRightX());
+    }
+    return applyDeadband(primaryInput);
   }
 
   public RobotContainer() {
@@ -100,74 +111,69 @@ public class RobotContainer {
   }
 
   private void configureBindings() {
-    // Xbox Controller Bindings
-    if (useXboxController) {
-      new JoystickButton(xboxController, XboxController.Button.kA.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
-      new JoystickButton(xboxController, XboxController.Button.kB.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
-      new JoystickButton(xboxController, XboxController.Button.kY.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
-      // Use Left Bumper for level 0 (more reliable than POV button)
-      new JoystickButton(xboxController, XboxController.Button.kX.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 0));
-      /*new JoystickButton(xboxController, XboxController.Button.kX.value)
-          .whileTrue(new LimelightDebugCommand(limelightSubsystem));*/
-      new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
-          .onTrue(Commands.either(
-              new FineTuneShooterIntakeCommand(shooterSubsystem),
-              new PrepareShooterCommand(shooterSubsystem),
-              () -> shooterSubsystem.getState() == ShooterState.CORAL_INSIDE
-          ));
+    // Configure button bindings for both controllers
+    // Both controllers have identical bindings for redundancy and flexibility
+    // This allows either the driver or operator to control any function if needed
+    
+    // Primary Xbox Controller Bindings
+    new JoystickButton(xboxController, XboxController.Button.kA.value)
+        .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
+    new JoystickButton(xboxController, XboxController.Button.kB.value)
+        .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
+    new JoystickButton(xboxController, XboxController.Button.kY.value)
+        .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
+    // Use Left Bumper for level 0 (more reliable than POV button)
+    new JoystickButton(xboxController, XboxController.Button.kX.value)
+        .onTrue(new ElevatorTestCommand(elevatorSubsystem, 0));
+    /*new JoystickButton(xboxController, XboxController.Button.kX.value)
+        .whileTrue(new LimelightDebugCommand(limelightSubsystem));*/
+    new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
+        .onTrue(Commands.either(
+            new FineTuneShooterIntakeCommand(shooterSubsystem),
+            new PrepareShooterCommand(shooterSubsystem),
+            () -> shooterSubsystem.getState() == ShooterState.CORAL_INSIDE
+        ));
 
-      // Add binding for elevator calibration (Back/Select button)
-      new JoystickButton(xboxController, XboxController.Button.kBack.value)
-          .onTrue(new CalibrateElevatorCommand(elevatorSubsystem));
+    // Add binding for elevator calibration (Back/Select button)
+    new JoystickButton(xboxController, XboxController.Button.kBack.value)
+        .onTrue(new CalibrateElevatorCommand(elevatorSubsystem));
 
-      // Shooter control - Right Bumper
-      new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)
-          .onTrue(new ShootCommand(shooterSubsystem, elevatorSubsystem));
-          
-      // Emergency stop for elevator (Start button)
-      new JoystickButton(xboxController, XboxController.Button.kStart.value)
-          .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
-    } else {
-      new JoystickButton(ps4Controller, PS4Controller.Button.kCross.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
-      new JoystickButton(ps4Controller, PS4Controller.Button.kCircle.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
-      new JoystickButton(ps4Controller, PS4Controller.Button.kTriangle.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
-      // Use L1 button for level 0 (more reliable than POV button)
-      new JoystickButton(ps4Controller, PS4Controller.Button.kL1.value)
-          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 0));
-      
-      // Add binding for elevator calibration (Share button)
-      new JoystickButton(ps4Controller, PS4Controller.Button.kShare.value)
-          .onTrue(new CalibrateElevatorCommand(elevatorSubsystem));
-
-      new JoystickButton(ps4Controller, PS4Controller.Button.kSquare.value)
-          .whileTrue(new LimelightDebugCommand(limelightSubsystem));
-
-      // Shooter control - Cross button for prepare
-      new JoystickButton(ps4Controller, PS4Controller.Button.kCross.value)
-          .onTrue(Commands.either(
-              new FineTuneShooterIntakeCommand(shooterSubsystem),
-              new PrepareShooterCommand(shooterSubsystem),
-              () -> shooterSubsystem.getState() == ShooterState.SHOOT_CORAL
-          ));
-
-      // Shooter control - R1 button
-      new JoystickButton(ps4Controller, PS4Controller.Button.kR1.value)
-          .onTrue(new ShootCommand(shooterSubsystem, elevatorSubsystem));
-          
-      // Emergency stop for elevator (Options button)
-      new JoystickButton(ps4Controller, PS4Controller.Button.kOptions.value)
-          .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
-    }
-
-    // command initializes itself once at the start, but doesn't update the starting pose?
+    // Shooter control - Right Bumper
     new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)
+        .onTrue(new ShootCommand(shooterSubsystem, elevatorSubsystem));
+        
+    // Emergency stop for elevator (Start button)
+    new JoystickButton(xboxController, XboxController.Button.kStart.value)
+        .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
+
+    // Secondary Xbox Controller Bindings (same as primary)
+    new JoystickButton(secondaryXboxController, XboxController.Button.kA.value)
+        .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
+    new JoystickButton(secondaryXboxController, XboxController.Button.kB.value)
+        .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
+    new JoystickButton(secondaryXboxController, XboxController.Button.kY.value)
+        .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
+    new JoystickButton(secondaryXboxController, XboxController.Button.kX.value)
+        .onTrue(new ElevatorTestCommand(elevatorSubsystem, 0));
+    
+    new JoystickButton(secondaryXboxController, XboxController.Button.kBack.value)
+        .onTrue(new CalibrateElevatorCommand(elevatorSubsystem));
+    
+    new JoystickButton(secondaryXboxController, XboxController.Button.kLeftBumper.value)
+        .onTrue(Commands.either(
+            new FineTuneShooterIntakeCommand(shooterSubsystem),
+            new PrepareShooterCommand(shooterSubsystem),
+            () -> shooterSubsystem.getState() == ShooterState.CORAL_INSIDE
+        ));
+    
+    new JoystickButton(secondaryXboxController, XboxController.Button.kRightBumper.value)
+        .onTrue(new ShootCommand(shooterSubsystem, elevatorSubsystem));
+    
+    new JoystickButton(secondaryXboxController, XboxController.Button.kStart.value)
+        .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
+
+    // Slow driving mode for primary controller
+    new JoystickButton(xboxController, XboxController.Button.kRightStick.value)
         .whileTrue(
             new DefaultDriveCommand(
                 driveSubsystem,
@@ -176,8 +182,9 @@ public class RobotContainer {
                 () -> getRotationInput() * 0.25
             )
         );
-
-    new JoystickButton(ps4Controller, PS4Controller.Button.kR1.value)
+        
+    // Slow driving mode for secondary controller
+    new JoystickButton(secondaryXboxController, XboxController.Button.kRightStick.value)
         .whileTrue(
             new DefaultDriveCommand(
                 driveSubsystem,
