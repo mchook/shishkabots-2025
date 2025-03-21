@@ -43,12 +43,12 @@ public class ElevatorSubsystem extends SubsystemBase {
     
     // Predefined heights in encoder units
     private static final double LEVEL_0_HEIGHT = 0.0;   // Bottom level (home position)
-    private static final double LEVEL_1_HEIGHT = 9.66;  // First level
-    private static final double LEVEL_2_HEIGHT = 19.66;  // Mid level
-    private static final double LEVEL_3_HEIGHT = 30.0;  // Top level
+    private static final double LEVEL_1_HEIGHT = 10.22;  // First level
+    private static final double LEVEL_2_HEIGHT = 22.0;  // Mid level
+    private static final double LEVEL_3_HEIGHT = 37;  // Top level
 
     // PID Constants - Tune these values during testing
-    private static final double kP = 0.5;
+    private static final double kP = 0.4;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.0;
