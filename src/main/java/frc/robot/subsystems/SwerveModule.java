@@ -11,8 +11,10 @@ import com.revrobotics.sim.SparkMaxSim;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.util.Logger;
 
 public class SwerveModule {
     private final SparkMax driveMotor;
@@ -30,6 +32,9 @@ public class SwerveModule {
     // mark the wanted driveSpeed, and turningPosition
     private double desiredSpeed;
     private double desiredAngle;
+    
+    // Module identifier
+    private String moduleName;
 
     // motor and simulated versions of the drive and turning motors
     private final DCMotor driveDCMotor;
@@ -41,7 +46,7 @@ public class SwerveModule {
             int driveMotorChannel,
             int turningMotorChannel,
             double angularOffset,
-            boolean inverted) {
+            boolean inverted, String moduleName) {
 
         driveMotor = new SparkMax(driveMotorChannel, SparkMax.MotorType.kBrushless);
         turningMotor = new SparkMax(turningMotorChannel, SparkMax.MotorType.kBrushless);
@@ -66,6 +71,7 @@ public class SwerveModule {
         driveMotorSim = new SparkMaxSim(driveMotor, driveDCMotor);
         turningMotorSim = new SparkMaxSim(turningMotor, turningDCMotor);
 
+        this.moduleName = moduleName;
     }
 
     public SwerveModuleState getState() {
@@ -92,15 +98,42 @@ public class SwerveModule {
         correctedDesiredState.angle = desiredState.angle.plus(Rotation2d.fromRadians(chasisAngularOffset));
         
         // Optimize the reference state to avoid spinning further than 90 degrees
+        SwerveModuleState originalState = new SwerveModuleState(
+            correctedDesiredState.speedMetersPerSecond,
+            correctedDesiredState.angle
+        );
         correctedDesiredState.optimize(new Rotation2d(turningEncoder.getPosition()));
 
         // Calculate the drive output from the drive encoder velocity
         desiredSpeed = correctedDesiredState.speedMetersPerSecond;
         desiredAngle = correctedDesiredState.angle.getRadians();
 
+        // Log turning motor details
+        Logger.log(moduleName + " - Current angle: " + Math.toDegrees(getTurningPosition()) + 
+                   "°, Target angle: " + Math.toDegrees(desiredAngle) + "°");
+        Logger.log(moduleName + " - Turning encoder position: " + turningEncoder.getPosition() + 
+                   ", Turning encoder velocity: " + turningEncoder.getVelocity());
+        Logger.log(moduleName + " - Pre-optimized angle: " + Math.toDegrees(originalState.angle.getRadians()) + 
+                   "°, Post-optimized: " + Math.toDegrees(correctedDesiredState.angle.getRadians()) + "°");
+        
+        // Add detailed turning motor data to SmartDashboard
+        SmartDashboard.putNumber(moduleName + "/TurningEncoder/Position", turningEncoder.getPosition());
+        SmartDashboard.putNumber(moduleName + "/TurningEncoder/Velocity", turningEncoder.getVelocity());
+        SmartDashboard.putNumber(moduleName + "/TurningMotor/TargetAngle", Math.toDegrees(desiredAngle));
+        SmartDashboard.putNumber(moduleName + "/TurningMotor/CurrentAngle", Math.toDegrees(getTurningPosition()));
+        SmartDashboard.putNumber(moduleName + "/TurningMotor/Error", 
+                                Math.toDegrees(desiredAngle - turningEncoder.getPosition()));
+        SmartDashboard.putNumber(moduleName + "/TurningMotor/AppliedOutput", turningMotor.getAppliedOutput());
+        SmartDashboard.putNumber(moduleName + "/TurningMotor/BusVoltage", turningMotor.getBusVoltage());
+        SmartDashboard.putNumber(moduleName + "/TurningMotor/OutputCurrent", turningMotor.getOutputCurrent());
+
         // PID Controllers sets the velocity and angle pos as a reference to KEEP A CONSISTENT VALUE
         driveClosedLoopController.setReference(desiredSpeed, ControlType.kVelocity);
         turningClosedLoopController.setReference(desiredAngle, ControlType.kPosition);
+        
+        // Log PID controller details
+        Logger.log(moduleName + " - Turning PID Controller - Setting reference to: " + desiredAngle + 
+                   " radians (" + Math.toDegrees(desiredAngle) + "°)");
     }
 
     private double getDriveVelocity() {
@@ -143,4 +176,12 @@ public class SwerveModule {
 
         turningMotorSim.iterate(velocityRadPerSec, turningMotor.getBusVoltage(), 0.02);
     } 
+
+    public double getDesiredAngle() {
+        return desiredAngle;
+    }
+    
+    public String getModuleName() {
+        return moduleName;
+    }
 }

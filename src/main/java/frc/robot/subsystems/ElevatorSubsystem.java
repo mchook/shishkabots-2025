@@ -54,7 +54,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     private static final double kD = 0.1;
     private static final double kFF = 0.0;
 
-    private static final double kP_1 = 0.1;
+    // Downward motion
+    private static final double kP_1 = 0.05;
     private static final double kI_1 = 0.0;
     private static final double kD_1 = 0.0;
     private static final double kFF_1 = 0.0;

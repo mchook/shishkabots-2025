@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.util.Logger;
 
 /**
@@ -44,6 +45,15 @@ public class Robot extends TimedRobot {
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
+    
+    // Reset emergency stop indicator after it's been displayed for a while
+    // This ensures it's visible but doesn't stay on permanently
+    if (SmartDashboard.getBoolean("EmergencyStop", false)) {
+      // Reset after 3 seconds so it's visible to drivers
+      if (DriverStation.getMatchTime() % 3 < 0.1) {
+        SmartDashboard.putBoolean("EmergencyStop", false);
+      }
+    }
   }
 
   @Override

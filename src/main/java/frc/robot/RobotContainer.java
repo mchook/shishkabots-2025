@@ -14,6 +14,7 @@ import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.LimelightDebugCommand;
 import frc.robot.commands.TestAllCoralPos;
 import frc.robot.commands.ElevatorTestCommand;
+import frc.robot.commands.EmergencyStopCommand;
 import frc.robot.commands.FineTuneShooterIntakeCommand;
 import frc.robot.commands.ShootCommand;
 import frc.robot.commands.PrepareShooterCommand;
@@ -137,15 +138,20 @@ public class RobotContainer {
     // Add binding for elevator calibration (Back/Select button)
     new JoystickButton(xboxController, XboxController.Button.kBack.value)
         .onTrue(new CalibrateElevatorCommand(elevatorSubsystem));
+        
+    // Emergency stop for all subsystems (Back + Start buttons together)
+    new JoystickButton(xboxController, XboxController.Button.kBack.value)
+        .and(new JoystickButton(xboxController, XboxController.Button.kStart.value))
+        .onTrue(new EmergencyStopCommand(driveSubsystem, elevatorSubsystem, shooterSubsystem));
 
+    // Emergency stop for elevator (Start button)
+    new JoystickButton(xboxController, XboxController.Button.kStart.value)
+        .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
+        
     // Shooter control - Right Bumper
     new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)
         .onTrue(new ShootCommand(shooterSubsystem, elevatorSubsystem));
         
-    // Emergency stop for elevator (Start button)
-    new JoystickButton(xboxController, XboxController.Button.kStart.value)
-        .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
-
     // Secondary Xbox Controller Bindings (same as primary)
     new JoystickButton(secondaryXboxController, XboxController.Button.kA.value)
         .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
@@ -171,6 +177,11 @@ public class RobotContainer {
     
     new JoystickButton(secondaryXboxController, XboxController.Button.kStart.value)
         .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
+
+    // Emergency stop for all subsystems (Back + Start buttons together) on secondary controller
+    new JoystickButton(secondaryXboxController, XboxController.Button.kBack.value)
+        .and(new JoystickButton(secondaryXboxController, XboxController.Button.kStart.value))
+        .onTrue(new EmergencyStopCommand(driveSubsystem, elevatorSubsystem, shooterSubsystem));
 
     // Slow driving mode for primary controller
     new JoystickButton(xboxController, XboxController.Button.kRightStick.value)
