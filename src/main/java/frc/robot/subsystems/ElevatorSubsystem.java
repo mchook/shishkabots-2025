@@ -78,6 +78,11 @@ public class ElevatorSubsystem extends SubsystemBase {
     // Periodic counter for status updates
     private int periodicCounter = 0;
 
+    // Auto-calibration variables
+    private boolean wasAtBottom = false;
+    private Timer bottomDwellTimer = new Timer();
+    private static final double AUTO_CALIBRATION_DWELL_TIME = 2.0; // seconds
+
     /*
      * Elevator max height = 63 inches
      * First level = 29 inches
@@ -154,6 +159,14 @@ public class ElevatorSubsystem extends SubsystemBase {
         
         // Log initialization
         Logger.log("Elevator subsystem initialized");
+        
+        // Attempt to auto-calibrate if the elevator is at the bottom limit switch
+        if (autoCalibrate()) {
+            Logger.log("Elevator auto-calibrated during initialization");
+        } else {
+            Logger.log("Elevator initialization complete, not at bottom limit switch");
+        }
+        
     }
     
     /**
@@ -260,6 +273,40 @@ public class ElevatorSubsystem extends SubsystemBase {
     public void resetEncoder() {
         encoder.setPosition(0);
     }
+    
+    /**
+     * Calibrate the zero position of the elevator
+     * Call this method when the elevator is physically at the bottom position
+     * to reset the encoder and ensure accurate position tracking
+     * @return The previous position value before calibration
+     */
+    public double calibrateZeroPosition() {
+        double previousPosition = getCurrentPosition();
+        Logger.log("Calibrating elevator zero position. Previous position: " + previousPosition);
+        
+        // Reset encoder to zero
+        resetEncoder();
+        
+        // Update the target position to match the new zero
+        targetPosition = 0.0;
+        
+        Logger.log("Elevator zero position calibrated. New position: " + getCurrentPosition());
+        return previousPosition;
+    }
+    
+    /**
+     * Automatically calibrate the zero position if the elevator is at the bottom limit switch
+     * @return True if calibration was performed, false if the elevator is not at the bottom
+     */
+    public boolean autoCalibrate() {
+        if (isAtBottom()) {
+            calibrateZeroPosition();
+            return true;
+        } else {
+            Logger.log("Auto-calibration skipped: elevator not at bottom limit switch");
+            return false;
+        }
+    }
 
     /**
      * Stop the elevator motors
@@ -341,6 +388,31 @@ public class ElevatorSubsystem extends SubsystemBase {
                 stop();
             }
         }
+        
+        // Auto-calibration logic when at bottom limit switch
+        boolean isBottomNow = isAtBottom();
+        
+        // Just arrived at bottom
+        if (isBottomNow && !wasAtBottom) {
+            bottomDwellTimer.reset();
+            bottomDwellTimer.start();
+        }
+        // Still at bottom, check if we should auto-calibrate
+        else if (isBottomNow && wasAtBottom) {
+            if (bottomDwellTimer.hasElapsed(AUTO_CALIBRATION_DWELL_TIME) && 
+                Math.abs(getCurrentPosition()) > 0.5) { // Only calibrate if position is off by more than 0.5
+                Logger.log("Auto-calibrating elevator after dwelling at bottom for " + 
+                           AUTO_CALIBRATION_DWELL_TIME + " seconds");
+                calibrateZeroPosition();
+                bottomDwellTimer.reset();
+            }
+        }
+        // No longer at bottom
+        else if (!isBottomNow && wasAtBottom) {
+            bottomDwellTimer.stop();
+        }
+        
+        wasAtBottom = isBottomNow;
         
         // Handle torque mode transition
         if (inTorqueMode) {

@@ -17,12 +17,12 @@ import frc.robot.commands.TestAllCoralPos;
 import frc.robot.commands.ElevatorTestCommand;
 import frc.robot.commands.ShootCommand;
 import frc.robot.commands.PrepareShooterCommand;
+import frc.robot.commands.CalibrateElevatorCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
-import edu.wpi.first.wpilibj2.command.button.POVButton;
 
 public class RobotContainer {
   // The robot's subsystems
@@ -98,13 +98,17 @@ public class RobotContainer {
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
       new JoystickButton(xboxController, XboxController.Button.kY.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
-      // Add binding for bottom position (level 0) on D-pad down
-      new POVButton(xboxController, 180) // 180 degrees is down on the D-pad
+      // Use Left Bumper for level 0 (more reliable than POV button)
+      new JoystickButton(xboxController, XboxController.Button.kX.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 0));
-      new JoystickButton(xboxController, XboxController.Button.kX.value)
-          .whileTrue(new LimelightDebugCommand(limelightSubsystem));
-      new JoystickButton(xboxController, XboxController.Button.kX.value)
+      /*new JoystickButton(xboxController, XboxController.Button.kX.value)
+          .whileTrue(new LimelightDebugCommand(limelightSubsystem));*/
+      new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
           .onTrue(new PrepareShooterCommand(shooterSubsystem));
+
+      // Add binding for elevator calibration (Back/Select button)
+      new JoystickButton(xboxController, XboxController.Button.kBack.value)
+          .onTrue(new CalibrateElevatorCommand(elevatorSubsystem));
 
       // Shooter control - Right Bumper
       new JoystickButton(xboxController, XboxController.Button.kRightBumper.value)
@@ -115,14 +119,19 @@ public class RobotContainer {
           .onTrue(Commands.runOnce(() -> elevatorSubsystem.stop()));
     } else {
       new JoystickButton(ps4Controller, PS4Controller.Button.kCross.value)
-          .onTrue(new PrepareShooterCommand(shooterSubsystem));
+          .onTrue(new ElevatorTestCommand(elevatorSubsystem, 1));
       new JoystickButton(ps4Controller, PS4Controller.Button.kCircle.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 2));
       new JoystickButton(ps4Controller, PS4Controller.Button.kTriangle.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 3));
-      // Add binding for bottom position (level 0) on D-pad down
-      new POVButton(ps4Controller, 180) // 180 degrees is down on the D-pad
+      // Use L1 button for level 0 (more reliable than POV button)
+      new JoystickButton(ps4Controller, PS4Controller.Button.kL1.value)
           .onTrue(new ElevatorTestCommand(elevatorSubsystem, 0));
+      
+      // Add binding for elevator calibration (Share button)
+      new JoystickButton(ps4Controller, PS4Controller.Button.kShare.value)
+          .onTrue(new CalibrateElevatorCommand(elevatorSubsystem));
+
       new JoystickButton(ps4Controller, PS4Controller.Button.kSquare.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
 
