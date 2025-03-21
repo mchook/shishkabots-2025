@@ -54,9 +54,6 @@ public class RobotContainer {
   // setup the AutoBuilder with all pathplanner paths in place
   private final SendableChooser<Command> autoChooser;
 
-  // Register Named Commands for Auton Routines
-  NamedCommands.registerCommand("shootBottomLevel", new ShootCommand());
-  NamedCommands.registerCommand("testAllCoralPos", new TestAllCoralPos());
 
   public LimelightSubsystem getLimelightSubsystem() {
     return limelightSubsystem;
@@ -96,6 +93,10 @@ public class RobotContainer {
     );
 
     autoChooser = AutoBuilder.buildAutoChooser("shish-test");
+
+      // Register Named Commands for Auton Routines
+    NamedCommands.registerCommand("shootBottomLevel", new ShootCommand(shooterSubsystem, elevatorSubsystem));
+    NamedCommands.registerCommand("prepareShooter", new PrepareShooterCommand(shooterSubsystem));
   }
 
   private void configureBindings() {
