@@ -1,7 +1,9 @@
 package frc.robot.commands;
 
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.util.Logger;
@@ -21,10 +23,7 @@ public class ShootCommand extends SequentialCommandGroup {
     public ShootCommand(ShooterSubsystem shooter, ElevatorSubsystem elevator) {
         addCommands(
             // First shoot the coral
-            new ShootCoralCommand(shooter, elevator),
-            
-            // Then lower the elevator to level 1 (intake position)
-            new ElevatorTestCommand(elevator, 0)
+            new ShootCoralCommand(shooter, elevator)
         );
     }
     
@@ -47,7 +46,9 @@ public class ShootCommand extends SequentialCommandGroup {
             // have to create a elevator level for very bottom in order for this to run
             if (elevator.getCurrentLevel() == 0) {
                 shooter.shootBottomLevelCoral();
-            } 
+            } else if (elevator.getCurrentLevel() == 3) {
+                shooter.shootHighestLevelCoral();
+            }
             shooter.shootCoral();
         }
 

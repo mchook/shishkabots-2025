@@ -116,7 +116,7 @@ public class SwerveModule {
         Logger.log(moduleName + " - Pre-optimized angle: " + Math.toDegrees(originalState.angle.getRadians()) + 
                    "°, Post-optimized: " + Math.toDegrees(correctedDesiredState.angle.getRadians()) + "°");
         
-        // Add detailed turning motor data to SmartDashboard
+        /* // Add detailed turning motor data to SmartDashboard
         SmartDashboard.putNumber(moduleName + "/TurningEncoder/Position", turningEncoder.getPosition());
         SmartDashboard.putNumber(moduleName + "/TurningEncoder/Velocity", turningEncoder.getVelocity());
         SmartDashboard.putNumber(moduleName + "/TurningMotor/TargetAngle", Math.toDegrees(desiredAngle));
@@ -125,7 +125,7 @@ public class SwerveModule {
                                 Math.toDegrees(desiredAngle - turningEncoder.getPosition()));
         SmartDashboard.putNumber(moduleName + "/TurningMotor/AppliedOutput", turningMotor.getAppliedOutput());
         SmartDashboard.putNumber(moduleName + "/TurningMotor/BusVoltage", turningMotor.getBusVoltage());
-        SmartDashboard.putNumber(moduleName + "/TurningMotor/OutputCurrent", turningMotor.getOutputCurrent());
+        SmartDashboard.putNumber(moduleName + "/TurningMotor/OutputCurrent", turningMotor.getOutputCurrent()); */
 
         // PID Controllers sets the velocity and angle pos as a reference to KEEP A CONSISTENT VALUE
         driveClosedLoopController.setReference(desiredSpeed, ControlType.kVelocity);

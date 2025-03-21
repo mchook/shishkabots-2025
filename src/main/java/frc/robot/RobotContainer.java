@@ -49,7 +49,8 @@ public class RobotContainer {
   private final XboxController xboxController = new XboxController(0); // Primary controller on port 0
   private final XboxController secondaryXboxController = new XboxController(1); // Secondary controller on port 1
 
-  private static final double DEADBAND = 0.1;
+  private static final double DEADBAND = 0.06;
+  private static final double SHOOTER_DEADBAND = 0.06;
   
   // setup the AutoBuilder with all pathplanner paths in place
   private final SendableChooser<Command> autoChooser;
@@ -69,7 +70,7 @@ public class RobotContainer {
     // Use primary controller input, but if it's not moving, check secondary
     double primaryInput = -xboxController.getLeftY();
     if (Math.abs(primaryInput) < DEADBAND) {
-      return applyDeadband(-secondaryXboxController.getLeftY());
+      return applyDeadband(-xboxController.getLeftY());
     }
     return applyDeadband(primaryInput);
   }
@@ -78,7 +79,7 @@ public class RobotContainer {
     // Use primary controller input, but if it's not moving, check secondary
     double primaryInput = -xboxController.getLeftX();
     if (Math.abs(primaryInput) < DEADBAND) {
-      return applyDeadband(-secondaryXboxController.getLeftX());
+      return applyDeadband(-xboxController.getLeftX());
     }
     return applyDeadband(primaryInput);
   }
@@ -87,23 +88,36 @@ public class RobotContainer {
     // Use primary controller input, but if it's not moving, check secondary
     double primaryInput = -xboxController.getRightX();
     if (Math.abs(primaryInput) < DEADBAND) {
-      return applyDeadband(-secondaryXboxController.getRightX());
+      return applyDeadband(-xboxController.getRightX());
     }
     return applyDeadband(primaryInput);
+  }
+
+  private double getShooterInput() {
+    double shooterInputSupplier = -secondaryXboxController.getRightY();
+    if (Math.abs(shooterInputSupplier) < SHOOTER_DEADBAND) {
+      return 0;
+    }
+    return shooterInputSupplier * 0.25;
   }
 
   public RobotContainer() {
     configureBindings();
     // Set up the default command for the drive subsystem
-    driveSubsystem.setDefaultCommand(
+    /* driveSubsystem.setDefaultCommand(
         new DefaultDriveCommand(
             driveSubsystem,
             () -> getForwardInput() * 0.5,  // Forward/backward
             () -> getStrafeInput() * 0.5,   // Left/right
             () -> getRotationInput() * 0.5  // Rotation
         )
-    );
-
+    ); */
+      shooterSubsystem.setDefaultCommand(
+        new FineTuneShooterIntakeCommand(
+        shooterSubsystem,
+        () -> getShooterInput()
+        )
+      );
     autoChooser = AutoBuilder.buildAutoChooser("shish-test");
 
       // Register Named Commands for Auton Routines
@@ -129,11 +143,9 @@ public class RobotContainer {
     /*new JoystickButton(xboxController, XboxController.Button.kX.value)
         .whileTrue(new LimelightDebugCommand(limelightSubsystem));*/
     new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
-        .onTrue(Commands.either(
-            new FineTuneShooterIntakeCommand(shooterSubsystem),
-            new PrepareShooterCommand(shooterSubsystem),
-            () -> shooterSubsystem.getState() == ShooterState.CORAL_INSIDE
-        ));
+        .onTrue(
+            new PrepareShooterCommand(shooterSubsystem)
+        );
 
     // Add binding for elevator calibration (Back/Select button)
     new JoystickButton(xboxController, XboxController.Button.kBack.value)
@@ -166,11 +178,8 @@ public class RobotContainer {
         .onTrue(new CalibrateElevatorCommand(elevatorSubsystem));
     
     new JoystickButton(secondaryXboxController, XboxController.Button.kLeftBumper.value)
-        .onTrue(Commands.either(
-            new FineTuneShooterIntakeCommand(shooterSubsystem),
-            new PrepareShooterCommand(shooterSubsystem),
-            () -> shooterSubsystem.getState() == ShooterState.CORAL_INSIDE
-        ));
+        .onTrue(
+            new PrepareShooterCommand(shooterSubsystem));
     
     new JoystickButton(secondaryXboxController, XboxController.Button.kRightBumper.value)
         .onTrue(new ShootCommand(shooterSubsystem, elevatorSubsystem));
@@ -194,16 +203,7 @@ public class RobotContainer {
             )
         );
         
-    // Slow driving mode for secondary controller
-    new JoystickButton(secondaryXboxController, XboxController.Button.kRightStick.value)
-        .whileTrue(
-            new DefaultDriveCommand(
-                driveSubsystem,
-                () -> getForwardInput() * 0.25,
-                () -> getStrafeInput() * 0.25,
-                () -> getRotationInput() * 0.25
-            )
-        );
+
   }
 
   private void configureDefaultCommands() {

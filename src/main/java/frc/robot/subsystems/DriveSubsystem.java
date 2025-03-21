@@ -14,6 +14,7 @@ import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.path.Waypoint;
 
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -32,6 +33,7 @@ import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.util.datalog.DoubleLogEntry;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotState;
 import frc.robot.util.Logger;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -74,6 +76,11 @@ public class DriveSubsystem extends SubsystemBase {
     
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
         m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
+
+    // Slew rate limiters to make joystick inputs more gentle
+    private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
+    private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
+    private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.MAX_ROTATIONAL_SLEW_RATE_RPS);
 
     private final Pigeon2 m_gyro = new Pigeon2(DriveConstants.PIGEON_CAN_ID); // Update the ID based on your Pigeon's CAN ID
     // initialize the field for simulator tracking
@@ -155,6 +162,13 @@ public class DriveSubsystem extends SubsystemBase {
         ySpeed = ySpeed * DriveConstants.MAX_SPEED_IN_MPS;
         rot = rot * DriveConstants.MAX_ANGULAR_SPEED_IN_RPS;
 
+        // Apply slew rate limiters to smooth out the inputs
+        if (!RobotState.isAutonomous()) {
+        xSpeed = m_xSpeedLimiter.calculate(xSpeed);
+        ySpeed = m_ySpeedLimiter.calculate(ySpeed);
+        rot = m_rotLimiter.calculate(rot);
+        }
+
         ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rot);
         var swerveModuleStates = kinematics.toSwerveModuleStates(speeds);
 
@@ -164,15 +178,6 @@ public class DriveSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Chasis Speeds Y", speeds.vyMetersPerSecond);
         SmartDashboard.putNumber("Chasis Speeds Rotation", speeds.omegaRadiansPerSecond);
 
-        // Debug output values for all modules
-        SmartDashboard.putNumber("Drive/FL/Speed", swerveModuleStates[0].speedMetersPerSecond);
-        SmartDashboard.putNumber("Drive/FL/Angle", swerveModuleStates[0].angle.getDegrees());
-        SmartDashboard.putNumber("Drive/FR/Speed", swerveModuleStates[1].speedMetersPerSecond);
-        SmartDashboard.putNumber("Drive/FR/Angle", swerveModuleStates[1].angle.getDegrees());
-        SmartDashboard.putNumber("Drive/BL/Speed", swerveModuleStates[2].speedMetersPerSecond);
-        SmartDashboard.putNumber("Drive/BL/Angle", swerveModuleStates[2].angle.getDegrees());
-        SmartDashboard.putNumber("Drive/BR/Speed", swerveModuleStates[3].speedMetersPerSecond);
-        SmartDashboard.putNumber("Drive/BR/Angle", swerveModuleStates[3].angle.getDegrees());
 
         // Log detailed turning motor commands
         Logger.log("Setting module states:");
@@ -267,26 +272,6 @@ public class DriveSubsystem extends SubsystemBase {
                 Logger.log("Back Right - Angle: " + Math.toDegrees(m_backRight.getSteerAngle()) + 
                           "°, Target: " + Math.toDegrees(m_backRight.getDesiredAngle()) + "°");
                 
-                // Add turning motor debug data to SmartDashboard
-                SmartDashboard.putNumber("TurningMotors/FrontLeft/CurrentAngle", Math.toDegrees(m_frontLeft.getSteerAngle()));
-                SmartDashboard.putNumber("TurningMotors/FrontLeft/TargetAngle", Math.toDegrees(m_frontLeft.getDesiredAngle()));
-                SmartDashboard.putNumber("TurningMotors/FrontLeft/Error", 
-                                       Math.toDegrees(m_frontLeft.getDesiredAngle() - m_frontLeft.getSteerAngle()));
-                
-                SmartDashboard.putNumber("TurningMotors/FrontRight/CurrentAngle", Math.toDegrees(m_frontRight.getSteerAngle()));
-                SmartDashboard.putNumber("TurningMotors/FrontRight/TargetAngle", Math.toDegrees(m_frontRight.getDesiredAngle()));
-                SmartDashboard.putNumber("TurningMotors/FrontRight/Error", 
-                                       Math.toDegrees(m_frontRight.getDesiredAngle() - m_frontRight.getSteerAngle()));
-                
-                SmartDashboard.putNumber("TurningMotors/BackLeft/CurrentAngle", Math.toDegrees(m_backLeft.getSteerAngle()));
-                SmartDashboard.putNumber("TurningMotors/BackLeft/TargetAngle", Math.toDegrees(m_backLeft.getDesiredAngle()));
-                SmartDashboard.putNumber("TurningMotors/BackLeft/Error", 
-                                       Math.toDegrees(m_backLeft.getDesiredAngle() - m_backLeft.getSteerAngle()));
-                
-                SmartDashboard.putNumber("TurningMotors/BackRight/CurrentAngle", Math.toDegrees(m_backRight.getSteerAngle()));
-                SmartDashboard.putNumber("TurningMotors/BackRight/TargetAngle", Math.toDegrees(m_backRight.getDesiredAngle()));
-                SmartDashboard.putNumber("TurningMotors/BackRight/Error", 
-                                       Math.toDegrees(m_backRight.getDesiredAngle() - m_backRight.getSteerAngle()));
 
                 // Add odometry data to SmartDashboard
                 var pose = getPose();

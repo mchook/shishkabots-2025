@@ -42,18 +42,22 @@ public class ShooterSubsystem extends SubsystemBase {
     private static final double INTAKE_TIMEOUT = 10; // seconds to wait for coral to be fully inside
 
     // Motor configuration constants
-    private static final double SHOOTING_POWER = 0.3; // 35% power for shooting
-    private static final double INTAKE_POWER = 0.35;   // 30% power for intake
+    private static final double L4_SHOOTING_POWER = 0.6;
+    private static final double SHOOTING_POWER = 0.4; // 35% power for shooting
+    private static final double INTAKE_POWER = 0.275;   // 30% power for intake
     private static final double FINE_TUNE_POWER = 0.2; // 15% power for fine tuning
     private static final int MAX_CURRENT = 40; // Amps
     
     // Keep these for reference but they're not used with open-loop control
-    private static final double kP = 1.5;
+    private static final double kP = 2.5;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.000175;
     
     private static final double SHOOT_DURATION = 2.0; // seconds
+
+    // telemetery timer
+    private int periodicCounter = 0;
 
     public ShooterSubsystem(int leftMotorCanId, int rightMotorCanId) {
         leftMotor = new SparkMax(leftMotorCanId, MotorType.kBrushless);
@@ -142,17 +146,27 @@ public class ShooterSubsystem extends SubsystemBase {
      * Fine-tune the shooter intake at a slower speed
      * Used when coral doesn't go in fully and needs adjustment
      */
-    public void fineTuneIntake() {
+    public void fineTuneIntake(double FINE_TUNE_POWER) {
         Logger.log("Fine tuning shooter intake");
         setMotorPower(FINE_TUNE_POWER);
         // Don't change the state - this can be called from multiple states
     }
-
+    public void shootHighestLevelCoral() {
+        if (currentState == ShooterState.CORAL_INSIDE) {
+            Logger.log("Shooting coral to bottom level");
+            leftMotor.set(L4_SHOOTING_POWER);
+            rightMotor.set(L4_SHOOTING_POWER);
+            stateTimer.reset();
+            stateTimer.start();
+        } else {
+            Logger.log("Cannot shoot - no coral inside shooter");
+        }
+    }
     public void shootBottomLevelCoral() {
         if (currentState == ShooterState.CORAL_INSIDE) {
             Logger.log("Shooting coral to bottom level");
-            leftMotor.set(SHOOTING_POWER - 0.15);
-            rightMotor.set(SHOOTING_POWER + 0.5);
+            leftMotor.set(SHOOTING_POWER - 0.1);
+            rightMotor.set(SHOOTING_POWER + 0.3);
             stateTimer.reset();
             stateTimer.start();
         } else {
@@ -282,7 +296,9 @@ public class ShooterSubsystem extends SubsystemBase {
         }
         
         // Update telemetry
-        updateTelemetry();
+        if (periodicCounter++ % 50 == 0) {
+            updateTelemetry();
+        }
     }
 
     private void updateTelemetry() {

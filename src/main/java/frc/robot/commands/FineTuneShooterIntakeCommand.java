@@ -1,5 +1,7 @@
 package frc.robot.commands;
 
+import java.util.function.DoubleSupplier;
+
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.util.Logger;
@@ -10,21 +12,24 @@ import frc.robot.util.Logger;
  */
 public class FineTuneShooterIntakeCommand extends Command {
     private final ShooterSubsystem shooter;
+    DoubleSupplier shootDoubleSupplier;
 
-    public FineTuneShooterIntakeCommand(ShooterSubsystem shooter) {
+    public FineTuneShooterIntakeCommand(ShooterSubsystem shooter, DoubleSupplier shooterInputSupplier) {
         this.shooter = shooter;
+        shootDoubleSupplier = shooterInputSupplier;
         addRequirements(shooter);
     }
 
     @Override
     public void initialize() {
-        Logger.log("FineTuneShooterIntakeCommand initialized");
-        shooter.fineTuneIntake();
+        shooter.stop();
     }
 
     @Override
     public void execute() {
         // Just keep the motors running at the fine-tuning speed
+        Logger.log("FineTuneShooterIntakeCommand initialized");
+        shooter.fineTuneIntake(shootDoubleSupplier.getAsDouble());
     }
 
     @Override
