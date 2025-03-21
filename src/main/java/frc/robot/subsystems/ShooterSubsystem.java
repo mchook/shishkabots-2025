@@ -42,8 +42,8 @@ public class ShooterSubsystem extends SubsystemBase {
     private static final double INTAKE_TIMEOUT = 1.2; // seconds to wait for coral to be fully inside
 
     // Motor configuration constants
-    private static final double SHOOTING_POWER = 0.35; // 10% power for shooting
-    private static final double INTAKE_POWER = 0.45;   // 20% power for intake
+    private static final double SHOOTING_POWER = 0.35; // 35% power for shooting
+    private static final double INTAKE_POWER = 0.30;   // 30% power for intake
     private static final int MAX_CURRENT = 40; // Amps
     
     // Keep these for reference but they're not used with open-loop control
@@ -74,7 +74,7 @@ public class ShooterSubsystem extends SubsystemBase {
             .idleMode(IdleMode.kCoast)  // Coast mode for less wear on the motors
             .inverted(false)
             .smartCurrentLimit(MAX_CURRENT)
-            .openLoopRampRate(0.1);     // Add ramp rate to smooth acceleration
+            .openLoopRampRate(0.05);     // Add ramp rate to smooth acceleration
         
         // Still configure PID in case we need it later, but we're not using it now
         leftConfig.closedLoop
@@ -95,7 +95,7 @@ public class ShooterSubsystem extends SubsystemBase {
             .inverted(true)
             .idleMode(IdleMode.kCoast)
             .smartCurrentLimit(MAX_CURRENT)
-            .openLoopRampRate(0.1);     // Add ramp rate to smooth acceleration
+            .openLoopRampRate(0.05);     // Add ramp rate to smooth acceleration
             
         rightMotor.configure(
             rightConfig,
@@ -140,7 +140,7 @@ public class ShooterSubsystem extends SubsystemBase {
     public void shootBottomLevelCoral() {
         if (currentState == ShooterState.CORAL_INSIDE) {
             Logger.log("Shooting coral to bottom level");
-            leftMotor.set(SHOOTING_POWER);
+            leftMotor.set(SHOOTING_POWER - 0.175);
             rightMotor.set(SHOOTING_POWER + 0.175);
             stateTimer.reset();
             stateTimer.start();

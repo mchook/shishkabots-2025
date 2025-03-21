@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
@@ -39,19 +40,24 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     // Elevator Position Constants (in encoder units)
     private static final double BOTTOM_THRESHOLD = -5.0;
-    private static final double TOP_THRESHOLD = 40.0;  // Adjust based on actual max height
+    private static final double TOP_THRESHOLD = 45.0;  // Adjust based on actual max height
     
     // Predefined heights in encoder units
     private static final double LEVEL_0_HEIGHT = 0.0;   // Bottom level (home position)
     private static final double LEVEL_1_HEIGHT = 10.22;  // First level
     private static final double LEVEL_2_HEIGHT = 22.0;  // Mid level
-    private static final double LEVEL_3_HEIGHT = 37;  // Top level
+    private static final double LEVEL_3_HEIGHT = 37.5;  // Top level
 
     // PID Constants - Tune these values during testing
-    private static final double kP = 0.4;
+    private static final double kP = 0.55;
     private static final double kI = 0.0;
-    private static final double kD = 0.0;
+    private static final double kD = 0.1;
     private static final double kFF = 0.0;
+
+    private static final double kP_1 = 0.1;
+    private static final double kI_1 = 0.0;
+    private static final double kD_1 = 0.0;
+    private static final double kFF_1 = 0.0;
 
     // Motion profile constants - controls speed in closed-loop mode
     // These are kept for future reference but not currently used
@@ -116,7 +122,10 @@ public class ElevatorSubsystem extends SubsystemBase {
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
             .pid(kP, kI, kD)
             .velocityFF(kFF)
-            .outputRange(MIN_OUTPUT, MAX_OUTPUT);
+            .outputRange(MIN_OUTPUT, MAX_OUTPUT)
+            .p(kP_1, ClosedLoopSlot.kSlot1)
+            .i(kI_1, ClosedLoopSlot.kSlot1)
+            .d(kD_1, ClosedLoopSlot.kSlot1);
             
         // Configure motion profiling if enabled
         if (USE_MOTION_PROFILE) {
@@ -189,10 +198,13 @@ public class ElevatorSubsystem extends SubsystemBase {
             // If error is large and we're moving up, use torque mode for initial movement
             Logger.log("Using torque mode for upward motion");
             enableTorqueMode();
-        } else {
+        } else if (error < 0) {
             // For downward motion or small adjustments, just use PID
-            Logger.log("Using PID control for downward motion or small adjustments");
-            closedLoopController.setReference(position, ControlType.kPosition);
+            Logger.log("Using PID profile for downward motion or small adjustments");
+            closedLoopController.setReference(position, ControlType.kPosition, ClosedLoopSlot.kSlot1);
+        } else {
+            Logger.log("Using default PID controller for small adjustments");
+            closedLoopController.setReference(position, ControlType.kPosition, ClosedLoopSlot.kSlot0);
         }
     }
     
