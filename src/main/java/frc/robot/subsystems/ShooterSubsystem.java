@@ -44,6 +44,7 @@ public class ShooterSubsystem extends SubsystemBase {
     // Motor configuration constants
     private static final double SHOOTING_POWER = 0.35; // 35% power for shooting
     private static final double INTAKE_POWER = 0.30;   // 30% power for intake
+    private static final double FINE_TUNE_POWER = 0.15; // 15% power for fine tuning
     private static final int MAX_CURRENT = 40; // Amps
     
     // Keep these for reference but they're not used with open-loop control
@@ -137,6 +138,16 @@ public class ShooterSubsystem extends SubsystemBase {
         }
     }
 
+    /**
+     * Fine-tune the shooter intake at a slower speed
+     * Used when coral doesn't go in fully and needs adjustment
+     */
+    public void fineTuneIntake() {
+        Logger.log("Fine tuning shooter intake");
+        setMotorPower(FINE_TUNE_POWER);
+        // Don't change the state - this can be called from multiple states
+    }
+
     public void shootBottomLevelCoral() {
         if (currentState == ShooterState.CORAL_INSIDE) {
             Logger.log("Shooting coral to bottom level");
@@ -176,6 +187,14 @@ public class ShooterSubsystem extends SubsystemBase {
         leftMotor.stopMotor();
         rightMotor.stopMotor();
         // Right motor follows left motor, so no need to stop it separately
+    }
+
+    /**
+     * Public method to stop the motors
+     * Can be called from commands
+     */
+    public void stop() {
+        stopMotors();
     }
 
     /**

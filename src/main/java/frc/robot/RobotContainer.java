@@ -5,16 +5,14 @@
 package frc.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
-
-import edu.wpi.first.wpilibj.PS4Controller;
-import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.LimelightDebugCommand;
 import frc.robot.commands.TestAllCoralPos;
 import frc.robot.commands.ElevatorTestCommand;
+import frc.robot.commands.FineTuneShooterIntakeCommand;
 import frc.robot.commands.ShootCommand;
 import frc.robot.commands.PrepareShooterCommand;
 import frc.robot.commands.CalibrateElevatorCommand;
@@ -22,7 +20,10 @@ import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.ShooterSubsystem.ShooterState;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj.PS4Controller;
+import edu.wpi.first.wpilibj.XboxController;
 
 public class RobotContainer {
   // The robot's subsystems
@@ -104,7 +105,11 @@ public class RobotContainer {
       /*new JoystickButton(xboxController, XboxController.Button.kX.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));*/
       new JoystickButton(xboxController, XboxController.Button.kLeftBumper.value)
-          .onTrue(new PrepareShooterCommand(shooterSubsystem));
+          .onTrue(Commands.either(
+              new FineTuneShooterIntakeCommand(shooterSubsystem),
+              new PrepareShooterCommand(shooterSubsystem),
+              () -> shooterSubsystem.getState() == ShooterState.SHOOT_CORAL
+          ));
 
       // Add binding for elevator calibration (Back/Select button)
       new JoystickButton(xboxController, XboxController.Button.kBack.value)
@@ -134,6 +139,14 @@ public class RobotContainer {
 
       new JoystickButton(ps4Controller, PS4Controller.Button.kSquare.value)
           .whileTrue(new LimelightDebugCommand(limelightSubsystem));
+
+      // Shooter control - Cross button for prepare
+      new JoystickButton(ps4Controller, PS4Controller.Button.kCross.value)
+          .onTrue(Commands.either(
+              new FineTuneShooterIntakeCommand(shooterSubsystem),
+              new PrepareShooterCommand(shooterSubsystem),
+              () -> shooterSubsystem.getState() == ShooterState.SHOOT_CORAL
+          ));
 
       // Shooter control - R1 button
       new JoystickButton(ps4Controller, PS4Controller.Button.kR1.value)
