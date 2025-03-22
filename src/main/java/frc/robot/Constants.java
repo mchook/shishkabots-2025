@@ -41,9 +41,9 @@ public class Constants {
     public static final class DriveConstants {
         public static RobotConfig pathPlannerConfig;
         // Chassis configuration
-        public static final double TRACK_WIDTH = Units.Inches.of(26.5).in(Units.Meters);
+        public static final double TRACK_WIDTH = Units.Inches.of(29).in(Units.Meters);
         // Distance between centers of right and left wheels on robot
-        public static final double WHEEL_BASE = Units.Inches.of(26.5).in(Units.Meters);
+        public static final double WHEEL_BASE = Units.Inches.of(29).in(Units.Meters);
         // Locations for the swerve drive modules relative to the robot center
         public static final Translation2d FRONT_LEFT_LOCATION = new Translation2d(WHEEL_BASE / 2, TRACK_WIDTH / 2);
         public static final Translation2d FRONT_RIGHT_LOCATION = new Translation2d(WHEEL_BASE / 2, -TRACK_WIDTH / 2);

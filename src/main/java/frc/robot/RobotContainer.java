@@ -93,12 +93,13 @@ public class RobotContainer {
     return applyDeadband(primaryInput);
   }
 
+  // getShooterInput only works with the secondary controller. PORT 1
   private double getShooterInput() {
     double shooterInputSupplier = -secondaryXboxController.getRightY();
     if (Math.abs(shooterInputSupplier) < SHOOTER_DEADBAND) {
       return 0;
     }
-    return shooterInputSupplier * 0.25;
+    return shooterInputSupplier * 0.4;
   }
 
   public RobotContainer() {
