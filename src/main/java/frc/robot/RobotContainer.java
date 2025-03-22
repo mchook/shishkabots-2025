@@ -119,7 +119,7 @@ public class RobotContainer {
         () -> getShooterInput()
         )
       );
-    autoChooser = AutoBuilder.buildAutoChooser("shish-test");
+    autoChooser = AutoBuilder.buildAutoChooser("a");
 
       // Register Named Commands for Auton Routines
     NamedCommands.registerCommand("shootBottomLevel", new ShootCommand(shooterSubsystem, elevatorSubsystem));
