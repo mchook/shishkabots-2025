@@ -19,6 +19,8 @@ public class LimelightSubsystem extends SubsystemBase {
     private AprilTagFieldLayout aprilTagField = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
     private double millisTimeRecorded;
     
+    private double yaw;
+
     // NetworkTable entries for common Limelight values
     private NetworkTableEntry tx;  // Horizontal offset from crosshair to target
     private NetworkTableEntry ty;  // Vertical offset from crosshair to target
@@ -156,6 +158,9 @@ public class LimelightSubsystem extends SubsystemBase {
     /*
      * If it detects an AprilTag ID, get it's pose to estimate the robot location with tx, ty, heightDiff
      */
+    public double getYaw() {
+        return yaw;
+    }
     public synchronized Pose2d getPose(Rotation2d robotRotation2d) {
         // if not valid return null 
         if (!isTargetValid()) {

@@ -38,7 +38,7 @@ public class Configs {
                 .velocityConversionFactor(ModuleConstants.RPM_TO_RADPS);
             turnConfig.closedLoop
                 .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
-                .pid(1, 0, 0)
+                .pid(0.7, 0, 0)
                 .velocityFF(0)
                 .outputRange(-1, 1)
                 .positionWrappingEnabled(true)

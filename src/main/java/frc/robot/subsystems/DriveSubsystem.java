@@ -48,6 +48,11 @@ public class DriveSubsystem extends SubsystemBase {
     private final Translation2d m_backLeftLocation = DriveConstants.BACK_LEFT_LOCATION;
     private final Translation2d m_backRightLocation = DriveConstants.BACK_RIGHT_LOCATION;
 
+    // Slew rate limiters to make joystick inputs more gentle
+    private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
+    private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
+    private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.MAX_ROTATIONAL_SLEW_RATE_RPS);
+
     // Motor controllers for the swerve drive modules
     private final SwerveModule m_frontLeft = new SwerveModule(
         DriveConstants.DRIVE_FRONT_LEFT_CAN_ID, 
@@ -73,14 +78,10 @@ public class DriveSubsystem extends SubsystemBase {
         DriveConstants.BACK_RIGHT_CHASIS_ANGULAR_OFFSET,
         false, "BackRight");
 
+    public static final double kMaxDriveVEL = 6.58; // m/s
     
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(
         m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
-
-    // Slew rate limiters to make joystick inputs more gentle
-    private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
-    private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(DriveConstants.MAX_MAGNITUDE_SLEW_RATE);
-    private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.MAX_ROTATIONAL_SLEW_RATE_RPS);
 
     private final Pigeon2 m_gyro = new Pigeon2(DriveConstants.PIGEON_CAN_ID); // Update the ID based on your Pigeon's CAN ID
     // initialize the field for simulator tracking
@@ -162,11 +163,11 @@ public class DriveSubsystem extends SubsystemBase {
         ySpeed = ySpeed * DriveConstants.MAX_SPEED_IN_MPS;
         rot = rot * DriveConstants.MAX_ANGULAR_SPEED_IN_RPS;
 
-        // Apply slew rate limiters to smooth out the inputs
         if (!RobotState.isAutonomous()) {
-        xSpeed = m_xSpeedLimiter.calculate(xSpeed);
-        ySpeed = m_ySpeedLimiter.calculate(ySpeed);
-        rot = m_rotLimiter.calculate(rot);
+            // Apply slew rate limiters to smooth out the inputs
+            xSpeed = m_xSpeedLimiter.calculate(xSpeed);
+            ySpeed = m_ySpeedLimiter.calculate(ySpeed);
+            rot = m_rotLimiter.calculate(rot);
         }
 
         ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rot);
@@ -300,6 +301,14 @@ public class DriveSubsystem extends SubsystemBase {
             }
             updateCounter = 0;
         }
+    }
+
+    public void setModuleStates(SwerveModuleState[] desiredStates) {
+        SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, kMaxDriveVEL);
+        m_frontLeft.setDesiredState(desiredStates[0]);
+        m_frontRight.setDesiredState(desiredStates[1]);
+        m_backLeft.setDesiredState(desiredStates[2]);
+        m_backRight.setDesiredState(desiredStates[3]);
     }
 
     public SwerveModuleState[] getModuleStates() {

@@ -49,7 +49,7 @@ public class RobotContainer {
   private final XboxController xboxController = new XboxController(0); // Primary controller on port 0
   private final XboxController secondaryXboxController = new XboxController(1); // Secondary controller on port 1
 
-  private static final double DEADBAND = 0.06;
+  private static final double DEADBAND = 0.095;
   private static final double SHOOTER_DEADBAND = 0.06;
   
   // setup the AutoBuilder with all pathplanner paths in place
@@ -104,14 +104,14 @@ public class RobotContainer {
   public RobotContainer() {
     configureBindings();
     // Set up the default command for the drive subsystem
-    /* driveSubsystem.setDefaultCommand(
+    driveSubsystem.setDefaultCommand(
         new DefaultDriveCommand(
             driveSubsystem,
             () -> getForwardInput() * 0.5,  // Forward/backward
             () -> getStrafeInput() * 0.5,   // Left/right
             () -> getRotationInput() * 0.5  // Rotation
         )
-    ); */
+    ); 
       shooterSubsystem.setDefaultCommand(
         new FineTuneShooterIntakeCommand(
         shooterSubsystem,

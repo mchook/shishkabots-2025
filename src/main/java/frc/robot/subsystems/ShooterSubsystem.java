@@ -44,12 +44,12 @@ public class ShooterSubsystem extends SubsystemBase {
     // Motor configuration constants
     private static final double L4_SHOOTING_POWER = 0.6;
     private static final double SHOOTING_POWER = 0.4; // 35% power for shooting
-    private static final double INTAKE_POWER = 0.275;   // 30% power for intake
+    private static final double INTAKE_POWER = 0.325;   // 30% power for intake
     private static final double FINE_TUNE_POWER = 0.2; // 15% power for fine tuning
     private static final int MAX_CURRENT = 40; // Amps
     
     // Keep these for reference but they're not used with open-loop control
-    private static final double kP = 2.5;
+    private static final double kP = 2.7;
     private static final double kI = 0.0;
     private static final double kD = 0.0;
     private static final double kFF = 0.000175;
