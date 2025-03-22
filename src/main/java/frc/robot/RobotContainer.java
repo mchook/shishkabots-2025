@@ -119,13 +119,12 @@ public class RobotContainer {
         () -> getShooterInput()
         )
       );
-    autoChooser = AutoBuilder.buildAutoChooser("a");
+    autoChooser = AutoBuilder.buildAutoChooser("g");
 
       // Register Named Commands for Auton Routines
     NamedCommands.registerCommand("shootBottomLevel", new ShootCommand(shooterSubsystem, elevatorSubsystem));
     NamedCommands.registerCommand("prepareShooter", new PrepareShooterCommand(shooterSubsystem));
   }
-
   private void configureBindings() {
     // Configure button bindings for both controllers
     // Both controllers have identical bindings for redundancy and flexibility
